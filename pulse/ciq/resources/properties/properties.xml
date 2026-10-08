@@ -1,0 +1,12 @@
+<properties>
+    <property id="field0" type="number">5</property>
+    <property id="field1" type="number">6</property>
+    <property id="field2" type="number">0</property>
+    <property id="field3" type="number">7</property>
+    <property id="city" type="number">0</property>
+    <property id="useCustomZone" type="boolean">false</property>
+    <property id="customOffset" type="number">0</property>
+    <property id="customLabel" type="string">UTC</property>
+    <property id="ringStyle" type="number">0</property>
+    <property id="accent" type="number">0</property>
+</properties>

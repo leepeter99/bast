@@ -1,0 +1,3 @@
+# A field keeps its relocation slot, with a one-minute lookahead
+
+The layout remembers each field's current slot instead of recomputing from scratch every minute, as the HTML prototype does. A relocated field stays where it is until that slot is blocked. It returns to its home slot only when home is clear now and next minute. It never moves from one non-home slot to another. Every move uses the same rule: a slot counts as free only if it's unblocked at this minute and the next. Without this, a field can hop between slots or be forced out a minute after moving in. Don't "simplify" this back to the prototype's approach.

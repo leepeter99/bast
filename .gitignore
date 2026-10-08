@@ -1,0 +1,9 @@
+# Local SDK downloads, signing material, and generated Connect IQ output.
+.direnv/
+.sdk/
+*.der
+*.pem
+*.key
+**/ciq/bin/
+result
+result-*
