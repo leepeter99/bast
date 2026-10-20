@@ -13,8 +13,8 @@ import Toybox.WatchUi;
 // DataProvider (ADR 0001): complications first, direct APIs otherwise.
 // read() returns [text, progress 0..1 or null, caption or null]. Missing data shows "--" (Unavailable).
 module Fields {
-    enum { HEART, RESTING, RECOVERY, BODY, WEATHER, BATTERY, STEPS, DATE, CALORIES, DISTANCE, SUNRISE, STRESS, ZONE }
-    const COUNT = 13;
+    enum { HEART, RESTING, RECOVERY, BODY, WEATHER, BATTERY, STEPS, DATE, CALORIES, DISTANCE, SUNRISE, STRESS, ZONE, MOVE }
+    const COUNT = 14;
 
     // ADR 0004: code, latitude, longitude. UTC has no location.
     const CITIES = [
@@ -26,7 +26,7 @@ module Fields {
     function name(id as Number) as String {
         return WatchUi.loadResource([
             Rez.Strings.M0, Rez.Strings.M1, Rez.Strings.M2, Rez.Strings.M3, Rez.Strings.M4, Rez.Strings.M5, Rez.Strings.M6,
-            Rez.Strings.M7, Rez.Strings.M8, Rez.Strings.M9, Rez.Strings.M10, Rez.Strings.M11, Rez.Strings.M12
+            Rez.Strings.M7, Rez.Strings.M8, Rez.Strings.M9, Rez.Strings.M10, Rez.Strings.M11, Rez.Strings.M12, Rez.Strings.M13
         ][id]) as String;
     }
 
@@ -71,7 +71,8 @@ module Fields {
             var p = g == null || g <= 0 ? null : (s >= g ? 1.0 : s.toFloat() / g);
             return [s >= 1000 ? (s / 1000.0).format("%.1f") + "K" : s.toString(), p, null];
         } else if (id == DATE) {
-            return [Gregorian.info(Time.now(), Time.FORMAT_SHORT).day.toString(), null, null];
+            var d = Gregorian.info(Time.now(), Time.FORMAT_MEDIUM);
+            return [d.day_of_week + " " + d.day, null, null];
         } else if (id == CALORIES) {
             var c = ActivityMonitor.getInfo().calories;
             return c == null ? none : [c.toString(), null, null];
@@ -86,6 +87,11 @@ module Fields {
             if (v == null) { return none; }
             var t = v.toNumber();
             return [hhmm(t / 3600 % 24, t / 60 % 60), null, null];
+        } else if (id == MOVE) {
+            // Move bar: 0 = active, 1+ = alert (first segment after 1 h idle), 5 = full.
+            var v = ActivityMonitor.getInfo().moveBarLevel;
+            if (v == null) { return none; }
+            return [v > ActivityMonitor.MOVE_BAR_LEVEL_MIN ? "MOVE" : "OK", v.toFloat() / ActivityMonitor.MOVE_BAR_LEVEL_MAX, null];
         }
         return zone();
     }

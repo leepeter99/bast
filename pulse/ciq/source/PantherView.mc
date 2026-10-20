@@ -129,7 +129,7 @@ class PantherView extends WatchUi.WatchFace {
             dc.setColor(0x2a1838, -1);
             dc.drawCircle(x, y, r - 5);
             var col = accent();
-            if (id == Fields.STRESS && p > 0.75) { col = accentIdx == AMBER ? 0xff5a5a : 0xff993d; }
+            if ((id == Fields.STRESS && p > 0.75) || (id == Fields.MOVE && p > 0)) { col = accentIdx == AMBER ? 0xff5a5a : 0xff993d; }
             dc.setColor(col, -1);
             if (p >= 1) { dc.drawCircle(x, y, r - 5); }
             else if (p > 0) {
@@ -222,6 +222,10 @@ class PantherView extends WatchUi.WatchFace {
             poly(dc, [[0, 7], [3, 7], [5, 2], [8, 12], [10, 7], [14, 7]], ox, oy, false);
         } else if (id == Fields.CALORIES) {
             poly(dc, [[7, 0], [12, 6], [12, 10], [9, 14], [4, 14], [1, 10], [2, 6], [5, 3], [5, 8]], ox, oy, false);
+        } else if (id == Fields.MOVE) {
+            dc.drawCircle(ox + 8, oy + 2, 2);
+            line(dc, ox, oy, 7, 5, 6, 9); line(dc, ox, oy, 2, 6, 11, 6);
+            line(dc, ox, oy, 6, 9, 3, 14); line(dc, ox, oy, 6, 9, 10, 14);
         } else if (id == Fields.DISTANCE) {
             poly(dc, [[1, 13], [5, 1], [9, 1], [13, 13]], ox, oy, false);
             line(dc, ox, oy, 7, 3, 7, 5); line(dc, ox, oy, 7, 8, 7, 10);
