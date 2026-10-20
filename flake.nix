@@ -2,13 +2,16 @@
   description = "Bast Garmin Forerunner 965 watch-face development";
 
   inputs.nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
+  # SDK Manager links WebKitGTK 4.0 (libsoup 2), removed from unstable.
+  inputs.nixpkgs-webkit40.url = "github:NixOS/nixpkgs/nixos-24.11"; # binary-cached
 
   outputs =
-    { nixpkgs, ... }:
+    { nixpkgs, nixpkgs-webkit40, ... }:
     let
       # Garmin distributes its Linux SDK for x86_64 only.
       system = "x86_64-linux";
       pkgs = import nixpkgs { inherit system; };
+      old = nixpkgs-webkit40.legacyPackages.${system};
 
       # Garmin's downloaded executables expect conventional Linux library paths.
       # Keep the SDK and downloaded device definitions in Garmin's writable
@@ -58,6 +61,11 @@
             alsa-lib
             libpulseaudio
             webkitgtk_4_1
+            old.webkitgtk_4_0
+            old.libsoup # 2.4 in 24.11
+            libsecret
+            expat
+            libxxf86vm
           ];
         runScript = pkgs.writeShellScript "garmin-exec" ''
           if [ "$#" -eq 0 ]; then
@@ -88,6 +96,18 @@
             exec ${garminRuntime}/bin/garmin-run "$sdk/bin/${command}" "$@"
           '';
         };
+
+      # Garmin publishes the manager unversioned at a fixed URL; when Garmin
+      # replaces it the hash check fails, so refresh the hash with
+      # `nix store prefetch-file --unpack <url>`.
+      sdkManagerSrc = pkgs.fetchzip {
+        url = "https://developer.garmin.com/downloads/connect-iq/sdk-manager/connectiq-sdk-manager-linux.zip";
+        hash = "sha256-YVDYRRlBAyogZEs7Rhw1IUZfvhFYnkCIOPVYG8it8Xk=";
+        stripRoot = false;
+      };
+      sdkmanager = pkgs.writeShellScriptBin "sdkmanager" ''
+        exec ${garminRuntime}/bin/garmin-run ${sdkManagerSrc}/bin/sdkmanager "$@"
+      '';
     in
     {
       devShells.${system}.default = pkgs.mkShell {
@@ -97,6 +117,7 @@
           pkgs.unzip # SDK Manager archive
           pkgs.go-mtpfs # sideload to the watch
           garminRuntime
+          sdkmanager
         ]
         ++ map sdkCommand [
           "monkeyc"

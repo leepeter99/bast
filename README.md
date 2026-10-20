@@ -21,12 +21,16 @@ dependencies. Garmin's SDK and device downloads are managed separately below.
 
 ### Install Garmin's tools once
 
-Download the Linux SDK Manager from [Garmin](https://developer.garmin.com/connect-iq/sdk/),
-unzip it, preserve its directory structure and launch:
+The flake fetches Garmin's Linux SDK Manager (hash-pinned) and runs it in the
+FHS runtime:
 
 ```sh
-garmin-run /absolute/path/to/sdk-manager/bin/sdkmanager
+sdkmanager
 ```
+
+If Garmin replaces the download, the hash check fails; update `hash` in
+`flake.nix` from `nix store prefetch-file --unpack <url>`. Its WebKitGTK 4.0
+and libsoup 2 come from a nixos-24.11 pin, as current nixpkgs removed them.
 
 Sign in, install a Linux SDK and the **Forerunner 965 (`fr965`) device files**,
 and select the installed SDK as active. The `monkeyc`, `monkeydo`, and `connectiq`
