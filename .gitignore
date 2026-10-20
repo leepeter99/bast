@@ -7,3 +7,9 @@
 **/ciq/bin/
 result
 result-*
+
+# Local AI tool config and state.
+.claude/
+.codex/
+.cortex/
+.mcp.json
