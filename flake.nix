@@ -76,6 +76,8 @@
         profile = ''
           export JAVA_HOME=${pkgs.jdk17}
           export SSL_CERT_FILE=${pkgs.cacert}/etc/ssl/certs/ca-bundle.crt
+          # TLS backend for libsoup/WebKit (SDK Manager sign-in); GIO ignores FHS paths.
+          export GIO_EXTRA_MODULES=${pkgs.glib-networking}/lib/gio/modules
         '';
       };
 
