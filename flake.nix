@@ -33,6 +33,7 @@
             stdenv.cc.cc.lib
             zlib
             libusb1
+            udev
             gtk2
             gtk3
             glib

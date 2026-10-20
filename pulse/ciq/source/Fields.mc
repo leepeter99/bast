@@ -23,11 +23,18 @@ module Fields {
         ["CCU", 22.573, 88.364], ["DXB", 25.205, 55.271], ["UTC", null, null]
     ];
 
+    // v if it is a Number in [0, n), else dflt. Settings come from the phone and may be stale.
+    function index(v as Object?, n as Number, dflt as Number) as Number {
+        return v instanceof Number && v >= 0 && v < n ? v : dflt;
+    }
+
+    function str(id as ResourceId) as String { return WatchUi.loadResource(id) as String; }
+
     function name(id as Number) as String {
-        return WatchUi.loadResource([
+        return str([
             Rez.Strings.M0, Rez.Strings.M1, Rez.Strings.M2, Rez.Strings.M3, Rez.Strings.M4, Rez.Strings.M5, Rez.Strings.M6,
             Rez.Strings.M7, Rez.Strings.M8, Rez.Strings.M9, Rez.Strings.M10, Rez.Strings.M11, Rez.Strings.M12, Rez.Strings.M13
-        ][id]) as String;
+        ][index(id, COUNT, 0)] as ResourceId);
     }
 
     function complication(type as Complications.Type) as Numeric or Null {
@@ -53,15 +60,18 @@ module Fields {
             var v = UserProfile.getProfile().averageRestingHeartRate;
             return v == null ? none : [v.toString(), null, null];
         } else if (id == RECOVERY) {
-            // ActivityMonitor documents hours; the complication's unit is unverified.
-            var v = ActivityMonitor.getInfo().timeToRecovery;
-            return v == null ? none : [v + "h", null, null];
+            // The complication reports minutes; show whole hours, rounded up.
+            var v = complication(Complications.COMPLICATION_TYPE_RECOVERY_TIME);
+            return v == null ? none : [(v.toNumber() + 59) / 60 + "h", null, null];
         } else if (id == BODY || id == STRESS) {
             var v = complication(id == BODY ? Complications.COMPLICATION_TYPE_BODY_BATTERY : Complications.COMPLICATION_TYPE_STRESS);
             return v == null ? none : [v.toNumber().toString(), v / 100.0, null];
         } else if (id == WEATHER) {
             var v = complication(Complications.COMPLICATION_TYPE_CURRENT_TEMPERATURE);
-            return v == null ? none : [Math.round(v).toNumber() + "°", null, null];
+            if (v == null) { return none; }
+            // The complication is always Celsius.
+            if (System.getDeviceSettings().temperatureUnits == System.UNIT_STATUTE) { v = v * 9 / 5.0 + 32; }
+            return [Math.round(v).toNumber() + "°", null, null];
         } else if (id == BATTERY) {
             var b = System.getSystemStats().battery;
             return [Math.round(b).toNumber() + "%", b / 100.0, null];
@@ -69,7 +79,7 @@ module Fields {
             var info = ActivityMonitor.getInfo(), s = info.steps, g = info.stepGoal;
             if (s == null) { return none; }
             var p = g == null || g <= 0 ? null : (s >= g ? 1.0 : s.toFloat() / g);
-            return [s >= 1000 ? (s / 1000.0).format("%.1f") + "K" : s.toString(), p, null];
+            return [s >= 1000 ? (s / 1000.0).format("%.1f") + str(Rez.Strings.Thousands) : s.toString(), p, null];
         } else if (id == DATE) {
             var d = Gregorian.info(Time.now(), Time.FORMAT_MEDIUM);
             return [d.day_of_week + " " + d.day, null, null];
@@ -80,9 +90,9 @@ module Fields {
             var cm = ActivityMonitor.getInfo().distance;
             if (cm == null) { return none; }
             var mi = System.getDeviceSettings().distanceUnits == System.UNIT_STATUTE;
-            return [(cm / (mi ? 160934.4 : 100000.0)).format("%.1f") + (mi ? "mi" : "km"), null, null];
+            return [(cm / (mi ? 160934.4 : 100000.0)).format("%.1f") + str(mi ? Rez.Strings.Miles : Rez.Strings.Km), null, null];
         } else if (id == SUNRISE) {
-            // Assumed seconds since local midnight; verify in the simulator.
+            // Seconds since local midnight.
             var v = complication(Complications.COMPLICATION_TYPE_SUNRISE);
             if (v == null) { return none; }
             var t = v.toNumber();
@@ -91,25 +101,26 @@ module Fields {
             // Move bar: 0 = active, 1+ = alert (first segment after 1 h idle), 5 = full.
             var v = ActivityMonitor.getInfo().moveBarLevel;
             if (v == null) { return none; }
-            return [v > ActivityMonitor.MOVE_BAR_LEVEL_MIN ? "MOVE" : "OK", v.toFloat() / ActivityMonitor.MOVE_BAR_LEVEL_MAX, null];
+            return [str(v > ActivityMonitor.MOVE_BAR_LEVEL_MIN ? Rez.Strings.Move : Rez.Strings.Ok), v.toFloat() / ActivityMonitor.MOVE_BAR_LEVEL_MAX, null];
         }
         return zone();
     }
 
     // ADR 0004: city via localMoment, or a custom fixed offset without DST.
     function zone() as Array {
-        var props = Application.Properties, now = Time.now(), info = null, code = null;
-        if (props.getValue("useCustomZone") as Boolean) {
-            var off = props.getValue("customOffset") as Number;
+        var now = Time.now(), info = null as Gregorian.Info?, code = "";
+        if (Application.Properties.getValue("useCustomZone") as Boolean) {
+            var off = (Application.Properties.getValue("customOffset") as Numeric).toNumber();
             info = Gregorian.utcInfo(now.add(new Time.Duration(off * 60)), Time.FORMAT_SHORT);
-            code = props.getValue("customLabel") as String;
+            var label = Application.Properties.getValue("customLabel") as String?;
+            code = label != null && label.length() > 0 ? label : offsetLabel(off);
         } else {
-            var city = CITIES[props.getValue("city") as Number];
-            code = city[0];
+            var city = CITIES[index(Application.Properties.getValue("city"), CITIES.size(), 0)];
+            code = city[0] as String;
             if (city[1] == null) {
                 info = Gregorian.utcInfo(now, Time.FORMAT_SHORT);
             } else {
-                var lm = Gregorian.localMoment(new Position.Location({:latitude => city[1], :longitude => city[2], :format => :degrees}), now);
+                var lm = Gregorian.localMoment(new Position.Location({:latitude => city[1] as Float, :longitude => city[2] as Float, :format => :degrees}), now);
                 if (lm != null) { info = Gregorian.info(lm, Time.FORMAT_SHORT); }
             }
         }
@@ -118,5 +129,12 @@ module Fields {
         var a = (info.year as Number) * 10000 + (info.month as Number) * 100 + info.day;
         var b = (here.year as Number) * 10000 + (here.month as Number) * 100 + here.day;
         return [hhmm(info.hour, info.min), null, code + (a > b ? " +1d" : a < b ? " -1d" : "")];
+    }
+
+    // Caption for a custom zone without a label: +8, +5:30, -3:30, or UTC.
+    function offsetLabel(off as Number) as String {
+        if (off == 0) { return "UTC"; }
+        var a = off < 0 ? -off : off, mm = a % 60;
+        return (off < 0 ? "-" : "+") + a / 60 + (mm == 0 ? "" : ":" + mm.format("%02d"));
     }
 }

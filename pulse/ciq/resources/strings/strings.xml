@@ -26,6 +26,11 @@
     <string id="M11">Stress</string>
     <string id="M12">Second time zone</string>
     <string id="M13">Move alert</string>
+    <string id="Move">MOVE</string>
+    <string id="Ok">OK</string>
+    <string id="Thousands">K</string>
+    <string id="Km">km</string>
+    <string id="Miles">mi</string>
     <string id="C0">London</string>
     <string id="C1">New York</string>
     <string id="C2">Tokyo</string>

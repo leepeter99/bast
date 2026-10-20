@@ -72,7 +72,7 @@ Run from the repository root:
 ```sh
 mkdir -p pulse/ciq/bin
 monkeyc -d fr965 -f pulse/ciq/monkey.jungle \
-  -o pulse/ciq/bin/pulse.prg -y "$GARMIN_DEVELOPER_KEY" -w
+  -o pulse/ciq/bin/pulse.prg -y "$GARMIN_DEVELOPER_KEY" -w -l 3
 connectiq
 ```
 
@@ -86,7 +86,7 @@ To compile and run the existing layout tests, with the simulator open:
 
 ```sh
 monkeyc -d fr965 -f pulse/ciq/monkey.jungle \
-  -o pulse/ciq/bin/pulse-tests.prg -y "$GARMIN_DEVELOPER_KEY" -w -t
+  -o pulse/ciq/bin/pulse-tests.prg -y "$GARMIN_DEVELOPER_KEY" -w -l 3 -t
 monkeydo pulse/ciq/bin/pulse-tests.prg fr965 -t
 ```
 

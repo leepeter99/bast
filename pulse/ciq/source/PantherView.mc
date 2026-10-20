@@ -10,6 +10,7 @@ class PantherView extends WatchUi.WatchFace {
     const CX = 227;
     const ACCENTS = [0xbc73ff, 0x9252e3, 0xdcadff, 0xff993d, 0x52dfff, 0xb8ed95];
     const AMBER = 3;
+    const DEFAULTS = [5, 6, 0, 7];
     const SHIFTS = [[0, 0], [2, 0], [2, 2], [0, 2]];
     // Hand outlines from the prototype SVG, relative to the centre, pointing at 12.
     const HOUR = [[-9, 6], [-10, -94], [0, -115], [10, -94], [9, 6]];
@@ -17,15 +18,17 @@ class PantherView extends WatchUi.WatchFace {
     const HOUR_AOD = [[-6, -14], [-10, -94], [0, -115], [10, -94], [6, -14]];
     const MINUTE_AOD = [[-5, -14], [-7, -149], [0, -168], [7, -149], [5, -14]];
 
-    var sleeping = false;
+    var sleeping as Boolean = false;
     var fields as Array<Number> = [5, 6, 0, 7];
-    var accentIdx = 0;
-    var ringStyle = 0;
+    var accentIdx as Number = 0;
+    var ringStyle as Number = 0;
     var last as Array<Number> = [0, 2, 4, 6];
     var slots as Array<Number> = [0, 2, 4, 6];
     var circles as Array = [];
-    var cachedMin = -1;
-    var fonts as Dictionary = {};
+    var values as Array = [null, null, null, null];
+    var cachedMin as Number = -1;
+    var fonts as Dictionary<Number, Graphics.VectorFont?> = {};
+    var ringRef as Graphics.BufferedBitmapReference?;
 
     function initialize() {
         WatchFace.initialize();
@@ -33,12 +36,12 @@ class PantherView extends WatchUi.WatchFace {
     }
 
     function loadSettings() as Void {
-        var p = Application.Properties;
-        for (var i = 0; i < 4; i++) { fields[i] = p.getValue("field" + i) as Number; }
-        accentIdx = p.getValue("accent") as Number;
-        ringStyle = p.getValue("ringStyle") as Number;
+        for (var i = 0; i < 4; i++) { fields[i] = Fields.index(Application.Properties.getValue("field" + i), Fields.COUNT, DEFAULTS[i]); }
+        accentIdx = Fields.index(Application.Properties.getValue("accent"), ACCENTS.size(), 0);
+        ringStyle = Fields.index(Application.Properties.getValue("ringStyle"), 3, 0);
         last = [0, 2, 4, 6];
         cachedMin = -1;
+        ringRef = null;
     }
 
     function onEnterSleep() as Void { sleeping = true; WatchUi.requestUpdate(); }
@@ -47,34 +50,56 @@ class PantherView extends WatchUi.WatchFace {
 
     function onUpdate(dc as Dc) as Void {
         var ct = System.getClockTime(), m = (ct.hour % 12) * 60 + ct.min;
-        dc.setAntiAlias(true);
-        dc.setColor(Graphics.COLOR_BLACK, Graphics.COLOR_BLACK);
-        dc.clear();
-        if (sleeping) { drawAlwaysOn(dc, m); return; }
+        // ADR 0003: no anti-aliasing in always-on mode, so edge pixels don't bleed across shifts.
+        dc.setAntiAlias(!sleeping);
+        if (sleeping) {
+            dc.setColor(Graphics.COLOR_BLACK, Graphics.COLOR_BLACK);
+            dc.clear();
+            drawAlwaysOn(dc, m);
+            return;
+        }
         if (m != cachedMin) {
             slots = Layout.assign(m, fields, last);
             last = slots;
             circles = Layout.fit(slots, m);
+            for (var i = 0; i < 4; i++) { values[i] = Fields.read(fields[i]); }
             cachedMin = m;
         }
-        drawDial(dc);
+        dc.drawBitmap(0, 0, ring());
         for (var i = 0; i < 4; i++) {
-            if (slots[i] >= 0) { drawGauge(dc, fields[i], circles[i]); }
+            if (slots[i] < 0) { continue; }
+            if (fields[i] == Fields.HEART) { values[i] = Fields.read(Fields.HEART); }
+            drawGauge(dc, fields[i], circles[i] as Array<Float>, values[i] as Array);
         }
         var hs = Layout.hands(m);
         drawHand(dc, HOUR, hs[0][0], CX, CX, true);
         drawHand(dc, MINUTE, hs[1][0], CX, CX, true);
         drawSeconds(dc, ct.sec * 6.0);
-        dc.setColor(0xe5caff, -1);
+        dc.setColor(0xe5caff, Graphics.COLOR_TRANSPARENT);
         dc.fillCircle(CX, CX, 10);
-        dc.setColor(0x283334, -1);
+        dc.setColor(0x283334, Graphics.COLOR_TRANSPARENT);
         dc.setPenWidth(4);
         dc.drawCircle(CX, CX, 10);
     }
 
-    function accent() as Number { return ACCENTS[accentIdx]; }
+    function accent() as Number { return ACCENTS[accentIdx] as Number; }
 
-    function font(size as Number) {
+    // The chapter ring only changes with ringStyle, so it is drawn once. The graphics pool may purge it.
+    function ring() as Graphics.BufferedBitmap {
+        var b = ringRef != null ? ringRef.get() as Graphics.BufferedBitmap? : null;
+        if (b == null) {
+            ringRef = Graphics.createBufferedBitmap({:width => 454, :height => 454});
+            b = ringRef.get() as Graphics.BufferedBitmap;
+            var bdc = b.getDc();
+            bdc.setAntiAlias(true);
+            bdc.setColor(Graphics.COLOR_BLACK, Graphics.COLOR_BLACK);
+            bdc.clear();
+            drawDial(bdc);
+        }
+        return b;
+    }
+
+    function font(size as Number) as Graphics.VectorFont? {
         if (!fonts.hasKey(size)) { fonts[size] = Graphics.getVectorFont({:face => "RobotoCondensedBold", :size => size}); }
         return fonts[size];
     }
@@ -91,16 +116,16 @@ class PantherView extends WatchUi.WatchFace {
     // Rings, minute ticks and the chapter ring style (prototype lines 12-13).
     function drawDial(dc as Dc) as Void {
         dc.setPenWidth(2);
-        dc.setColor(0x49245c, -1);
+        dc.setColor(0x49245c, Graphics.COLOR_TRANSPARENT);
         dc.drawCircle(CX, CX, 181);
         dc.setPenWidth(1);
-        dc.setColor(0x50325e, -1);
+        dc.setColor(0x50325e, Graphics.COLOR_TRANSPARENT);
         dc.drawCircle(CX, CX, 204);
         for (var i = 0; i < 60; i++) {
             var major = i % 5 == 0, a = i * Math.PI / 30, s = Math.sin(a), c = Math.cos(a);
             var r0 = major ? 207 : 203, r1 = major ? 187 : 198;
             dc.setPenWidth(major ? 6 : 2);
-            dc.setColor(major ? 0xdac5eb : 0x513262, -1);
+            dc.setColor(major ? 0xdac5eb : 0x513262, Graphics.COLOR_TRANSPARENT);
             dc.drawLine(CX + s * r0, CX - c * r0, CX + s * r1, CX - c * r1);
         }
         if (ringStyle == 2) { return; }
@@ -108,29 +133,29 @@ class PantherView extends WatchUi.WatchFace {
             var a = i * Math.PI / 6, cardinal = i % 3 == 0, label;
             if (ringStyle == 1) { label = (i == 0 ? 12 : i).toString(); }
             else { label = i == 0 ? "N" : i == 3 ? "E" : i == 6 ? "S" : i == 9 ? "W" : (i * 30).toString(); }
-            dc.setColor(cardinal ? 0xe5cff6 : 0x9278a6, -1);
+            dc.setColor(cardinal ? 0xe5cff6 : 0x9278a6, Graphics.COLOR_TRANSPARENT);
             text(dc, CX + Math.sin(a) * 214, CX - Math.cos(a) * 214, cardinal ? 13 : 10, label);
         }
     }
 
-    function drawGauge(dc as Dc, id as Number, c as Array) as Void {
-        var x = c[0], y = c[1], r = c[2], d = Fields.read(id), value = d[0] as String, p = d[1];
-        dc.setColor(0x100818, -1);
+    function drawGauge(dc as Dc, id as Number, c as Array<Float>, d as Array) as Void {
+        var x = c[0], y = c[1], r = c[2], value = d[0] as String, p = d[1] as Float?;
+        dc.setColor(0x100818, Graphics.COLOR_TRANSPARENT);
         dc.fillCircle(x, y, r);
         dc.setPenWidth(2);
-        dc.setColor(0x643887, -1);
+        dc.setColor(0x643887, Graphics.COLOR_TRANSPARENT);
         dc.drawCircle(x, y, r);
         if (p == null) {
             dc.setPenWidth(1);
-            dc.setColor(accent(), -1);
+            dc.setColor(accent(), Graphics.COLOR_TRANSPARENT);
             dc.drawCircle(x, y, r - 5);
         } else {
             dc.setPenWidth(4);
-            dc.setColor(0x2a1838, -1);
+            dc.setColor(0x2a1838, Graphics.COLOR_TRANSPARENT);
             dc.drawCircle(x, y, r - 5);
             var col = accent();
             if ((id == Fields.STRESS && p > 0.75) || (id == Fields.MOVE && p > 0)) { col = accentIdx == AMBER ? 0xff5a5a : 0xff993d; }
-            dc.setColor(col, -1);
+            dc.setColor(col, Graphics.COLOR_TRANSPARENT);
             if (p >= 1) { dc.drawCircle(x, y, r - 5); }
             else if (p > 0) {
                 var end = (90 - p * 360).toNumber();
@@ -139,27 +164,28 @@ class PantherView extends WatchUi.WatchFace {
         }
         drawIcon(dc, id, x - 7, y - 24);
         var size = 24 * r / 44, fitSize = r * 1.5 / (value.length() * 0.62);
-        dc.setColor(0xf5f6f7, -1);
-        text(dc, x, y + 9, (size < fitSize ? size : fitSize).toNumber(), value);
+        dc.setColor(0xf5f6f7, Graphics.COLOR_TRANSPARENT);
+        // Even sizes only, to bound the font cache.
+        text(dc, x, y + 9, (size < fitSize ? size : fitSize).toNumber() / 2 * 2, value);
         if (d[2] != null) {
-            dc.setColor(accent(), -1);
+            dc.setColor(accent(), Graphics.COLOR_TRANSPARENT);
             text(dc, x, y + 28, 11, d[2] as String);
         }
     }
 
-    function drawHand(dc as Dc, shape as Array, deg as Float, cx as Number, cy as Number, filled as Boolean) as Void {
-        var a = deg * Math.PI / 180, s = Math.sin(a), c = Math.cos(a), pts = [];
+    function drawHand(dc as Dc, shape as Array<Array<Number>>, deg as Float, cx as Number, cy as Number, filled as Boolean) as Void {
+        var a = deg * Math.PI / 180, s = Math.sin(a), c = Math.cos(a), pts = [] as Array<[Numeric, Numeric]>;
         for (var i = 0; i < shape.size(); i++) {
             var px = shape[i][0], py = shape[i][1];
             pts.add([cx + px * c - py * s, cy + px * s + py * c]);
         }
         if (filled) {
-            dc.setColor(0xe5caff, -1);
+            dc.setColor(0xe5caff, Graphics.COLOR_TRANSPARENT);
             dc.fillPolygon(pts);
-            dc.setColor(0x553166, -1);
+            dc.setColor(0x553166, Graphics.COLOR_TRANSPARENT);
             dc.setPenWidth(3);
         } else {
-            dc.setColor(0x84718f, -1);
+            dc.setColor(0x84718f, Graphics.COLOR_TRANSPARENT);
             dc.setPenWidth(1);
         }
         for (var i = 0; i < pts.size(); i++) {
@@ -170,12 +196,12 @@ class PantherView extends WatchUi.WatchFace {
 
     function drawSeconds(dc as Dc, deg as Float) as Void {
         var a = deg * Math.PI / 180, s = Math.sin(a), c = Math.cos(a);
-        dc.setColor(accent(), -1);
+        dc.setColor(accent(), Graphics.COLOR_TRANSPARENT);
         dc.setPenWidth(2);
         dc.drawLine(CX - s * 25, CX + c * 25, CX + s * 184, CX - c * 184);
-        dc.setColor(0x08030d, -1);
+        dc.setColor(0x08030d, Graphics.COLOR_TRANSPARENT);
         dc.fillCircle(CX - s * 20, CX + c * 20, 4);
-        dc.setColor(accent(), -1);
+        dc.setColor(accent(), Graphics.COLOR_TRANSPARENT);
         dc.drawCircle(CX - s * 20, CX + c * 20, 4);
     }
 
@@ -189,7 +215,7 @@ class PantherView extends WatchUi.WatchFace {
 
     // Icons from the prototype's dataIcon, in a 14x14 box at (ox, oy).
     function drawIcon(dc as Dc, id as Number, ox as Numeric, oy as Numeric) as Void {
-        dc.setColor(accent(), -1);
+        dc.setColor(accent(), Graphics.COLOR_TRANSPARENT);
         dc.setPenWidth(2);
         if (id == Fields.HEART || id == Fields.RESTING) {
             var heart = [[7, 13], [1, 7], [0, 3], [2, 0], [5, 0], [7, 3], [9, 0], [12, 0], [14, 3], [13, 7]];
@@ -235,8 +261,8 @@ class PantherView extends WatchUi.WatchFace {
         }
     }
 
-    function offset(pts as Array, ox as Numeric, oy as Numeric) as Array {
-        var out = [];
+    function offset(pts as Array<Array<Number>>, ox as Numeric, oy as Numeric) as Array<[Numeric, Numeric]> {
+        var out = [] as Array<[Numeric, Numeric]>;
         for (var i = 0; i < pts.size(); i++) { out.add([ox + pts[i][0], oy + pts[i][1]]); }
         return out;
     }
@@ -245,7 +271,7 @@ class PantherView extends WatchUi.WatchFace {
         dc.drawLine(ox + x1, oy + y1, ox + x2, oy + y2);
     }
 
-    function poly(dc as Dc, pts as Array, ox as Numeric, oy as Numeric, closed as Boolean) as Void {
+    function poly(dc as Dc, pts as Array<Array<Number>>, ox as Numeric, oy as Numeric, closed as Boolean) as Void {
         var n = pts.size();
         for (var i = 0; i < (closed ? n : n - 1); i++) {
             var q = pts[(i + 1) % n];

@@ -100,14 +100,14 @@ module Layout {
         for (var step = 0; step < 10; step++) {
             for (var i = 0; i < cs.size(); i++) {
                 if (cs[i] == null) { continue; }
-                var base = slotXY(slots[i]), r = cs[i][2] + 1;
+                var base = slotXY(slots[i]), r = (cs[i] as Array<Float>)[2] + 1;
                 var ratio = (RING - (r - 44) * 0.7) / RING;
                 var x = CX + (base[0] - CX) * ratio, y = CX + (base[1] - CX) * ratio;
                 if (Math.sqrt((x - CX) * (x - CX) + (y - CX) * (y - CX)) + r > EDGE) { continue; }
                 if (clearance(x, y, m) < r + 16) { continue; }
                 var hit = false;
                 for (var j = 0; j < cs.size(); j++) {
-                    var q = cs[j];
+                    var q = cs[j] as Array<Float>?;
                     if (q == null || j == i) { continue; }
                     if (Math.sqrt((x - q[0]) * (x - q[0]) + (y - q[1]) * (y - q[1])) < r + q[2] + 7) { hit = true; break; }
                 }

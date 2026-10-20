@@ -11,7 +11,7 @@ function layoutSweep(logger as Logger) as Boolean {
         for (var i = 0; i < 4; i++) {
             var s = out[i], was = last[i], home = Layout.HOMES[i];
             if (s < 0) { continue; }
-            var c = cs[i] as Array;
+            var c = cs[i] as Array<Float>;
             Test.assertMessage(Layout.clearance(c[0], c[1], m) >= c[2] + 16, "gauge under a hand at " + m);
             if (s == was) { continue; }
             Test.assertMessage(!now[s] && !next[s], "moved into a slot not free at m and m+1, at " + m);

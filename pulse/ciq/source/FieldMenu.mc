@@ -10,7 +10,7 @@ function positionName(i as Number) as String {
 }
 
 function fieldAt(i as Number) as Number {
-    return Application.Properties.getValue("field" + i) as Number;
+    return Fields.index(Application.Properties.getValue("field" + i), Fields.COUNT, 0);
 }
 
 class FieldMenu extends WatchUi.Menu2 {

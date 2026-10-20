@@ -67,5 +67,5 @@ A field that shows the local time in a chosen city, including daylight saving, o
 _Avoid_: Travel time, world clock, dual time
 
 **Custom zone**:
-A second zone defined by the user as a fixed UTC offset plus a 3-letter label, with no daylight saving.
+A second zone defined by the user as a fixed UTC offset plus an optional 3-letter label, with no daylight saving. Without a label, the offset itself is shown, such as `+5:30`.
 _Avoid_: Manual offset, other city
