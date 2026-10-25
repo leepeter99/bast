@@ -1,28 +1,36 @@
-bast_pulse is an analog watch face for the Forerunner 965 with data fields that move out of the way of the hands.
+bast_pulse is an analog watch face for AMOLED Garmin watches with data gauges that move out of the way of the hands, and four segmented corner bars along the edge for your daily progress.
 
-Four circular gauges sit at the top, right, bottom and left of the dial. When the hour or minute hand passes over a gauge, that gauge moves to a free spot so the reading stays visible. Each gauge expands into the space around it, and fields with a natural range, such as battery or Body Battery, show a progress arc.
+GAUGES
+Four circular gauges sit at the top, right, bottom and left of the dial. When the hour or minute hand passes over a gauge, it moves to a free spot so the reading stays visible. Fields with a natural range, such as watch battery, show a progress arc.
 
-FIELDS (pick any four):
+Pick any four of:
 • Heart rate
 • Resting heart rate
-• Recovery time
-• Body Battery
-• Stress
-• Steps
-• Calories
-• Distance (km or mi, from your device settings)
-• Move alert
+• Weather
 • Watch battery
 • Date with weekday
-• Weather
+• Calories
+• Distance (km or mi, from your device settings)
 • Sunrise
+• Stress
 • Second time zone: London, New York, Tokyo, Sydney, Singapore, Kuala Lumpur, Kolkata, Dubai or UTC, with daylight saving applied. You can also set a custom UTC offset with an optional 3-letter label.
 
-CUSTOMIZE:
-• Chapter ring: Compass (decorative N/E/S/W and degree labels), Hour numerals or Ticks only
-• Accent colour: Vibranium purple, Deep violet, Soft lavender, Amber, Ice Blue or Lume Green
+CORNER BARS
+Four bars run along the dial edge. Each one shows Steps, Body Battery, Move alert or Recovery, or can be turned off. The fill always tracks the real value.
+• Move alert reads ACTIVE when you've moved recently, loses a segment for each step of idleness, and refills when you walk it off.
+• Recovery fills as your recovery time runs down, and shows RECHARGED at zero.
 
-ALWAYS-ON:
+TIME STYLE
+• Analog: hands only.
+• Hybrid: stacked hour, minute and second digits to the right of centre, under the hands, with three gauges. 12 or 24 hour format, or follow your watch setting.
+
+CUSTOMIZE
+Accent colour: Vibranium purple, Deep violet, Soft lavender, Amber, Ice Blue or Lume Green.
+
+ALWAYS-ON
 In low-power mode, the face shows only outlined hour and minute hands, shifted slightly each minute to protect the AMOLED display.
 
-If a reading isn't available, its gauge shows "--".
+COMPATIBLE WATCHES
+Forerunner 965 and 970, fēnix 8 AMOLED (43mm, 47mm, 51mm, Pro) and fēnix 9 AMOLED (43mm, 47mm, 51mm, Pro). The layout scales automatically to each screen size. Solar (MIP display) models are not supported.
+
+If a reading isn't available, it shows "--".

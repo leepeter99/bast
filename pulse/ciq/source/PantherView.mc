@@ -9,7 +9,8 @@ import Toybox.WatchUi;
 
 // WatchFace + Renderer: data first, hands last. Always-on mode follows ADR 0003, corner bars ADR 0005.
 class PantherView extends WatchUi.WatchFace {
-    const CX = 227;
+    var S as Float = 1.0;
+    var CX as Float = 227.0;
     const ACCENTS = [0xbc73ff, 0x9252e3, 0xdcadff, 0xff993d, 0x52dfff, 0xb8ed95];
     const AMBER = 3;
     const WALKING_STEPS = 60;
@@ -19,8 +20,8 @@ class PantherView extends WatchUi.WatchFace {
     const SPANS = [[280, 350], [10, 80], [190, 260], [100, 170]];
     const FROM_START = [true, false, false, true];
     const TOP = [true, true, false, false];
-    const BAR_R = 214;
-    const LABEL_R = 193;
+    var BAR_R as Float = 214.0;
+    var LABEL_R as Float = 193.0;
     const TRACK = 0x24152f;
     const HYBRID_CLOSED = [false, true, true, true, false, false, false, false];
     const OPEN = [false, false, false, false, false, false, false, false];
@@ -53,6 +54,9 @@ class PantherView extends WatchUi.WatchFace {
 
     function initialize() {
         WatchFace.initialize();
+        var w = System.getDeviceSettings().screenWidth;
+        Layout.setup(w);
+        S = Layout.S; CX = Layout.CX; BAR_R = 214.0 * S; LABEL_R = 193.0 * S;
         loadSettings();
     }
 
@@ -107,10 +111,10 @@ class PantherView extends WatchUi.WatchFace {
         drawHand(dc, MINUTE, hs[1][0], CX, CX, true);
         drawSeconds(dc, ct.sec * 6.0);
         dc.setColor(0xe5caff, Graphics.COLOR_TRANSPARENT);
-        dc.fillCircle(CX, CX, 10);
+        dc.fillCircle(CX, CX, 10 * S);
         dc.setColor(0x283334, Graphics.COLOR_TRANSPARENT);
         dc.setPenWidth(4);
-        dc.drawCircle(CX, CX, 10);
+        dc.drawCircle(CX, CX, 10 * S);
     }
 
     function accent() as Number { return ACCENTS[accentIdx] as Number; }
@@ -119,7 +123,7 @@ class PantherView extends WatchUi.WatchFace {
     function edge() as Graphics.BufferedBitmap {
         var b = edgeRef != null ? edgeRef.get() as Graphics.BufferedBitmap? : null;
         if (b == null) {
-            edgeRef = Graphics.createBufferedBitmap({:width => 454, :height => 454});
+            edgeRef = Graphics.createBufferedBitmap({:width => (454 * S).toNumber(), :height => (454 * S).toNumber()});
             b = edgeRef.get() as Graphics.BufferedBitmap;
             var bdc = b.getDc();
             bdc.setAntiAlias(true);
@@ -136,6 +140,7 @@ class PantherView extends WatchUi.WatchFace {
     }
 
     function text(dc as Dc, x as Numeric, y as Numeric, size as Number, s as String) as Void {
+        size = (size * S).toNumber();
         var f = font(size);
         if (f != null) {
             dc.drawAngledText(x, y, f, s, Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER, 0);
@@ -153,8 +158,8 @@ class PantherView extends WatchUi.WatchFace {
             }
             if (covered) { continue; }
             var cardinal = i % 15 == 0, major = i % 5 == 0, a = deg * Math.PI / 180, s = Math.sin(a), c = Math.cos(a);
-            var r0 = cardinal ? 225 : major ? 224 : 223, r1 = cardinal ? 200 : major ? 208 : 216;
-            dc.setPenWidth(cardinal ? 6 : major ? 4 : 2);
+            var r0 = (cardinal ? 225 : major ? 224 : 223) * S, r1 = (cardinal ? 200 : major ? 208 : 216) * S;
+            dc.setPenWidth(((cardinal ? 6 : major ? 4 : 2) * S + 0.5).toNumber());
             dc.setColor(cardinal ? 0xe5cff6 : major ? 0x9a80ad : 0x4a2f5a, Graphics.COLOR_TRANSPARENT);
             dc.drawLine(CX + s * r0, CX - c * r0, CX + s * r1, CX - c * r1);
         }
@@ -170,7 +175,7 @@ class PantherView extends WatchUi.WatchFace {
     // Segment j of bar k, counted from the bar's fill end. 1 degree gap on each side.
     function drawSegment(dc as Dc, k as Number, j as Number, n as Number, col as Number) as Void {
         var a = SPANS[k][0], w = (SPANS[k][1] - a) / n, idx = FROM_START[k] ? j : n - 1 - j;
-        dc.setPenWidth(16);
+        dc.setPenWidth((16 * S).toNumber());
         dc.setColor(col, Graphics.COLOR_TRANSPARENT);
         // Clockwise-from-12 to the Dc's counter-clockwise-from-3 degrees.
         dc.drawArc(CX, CX, BAR_R, Graphics.ARC_CLOCKWISE, (450 - a - idx * w - 1) % 360, (450 - a - (idx + 1) * w + 1) % 360);
@@ -189,7 +194,7 @@ class PantherView extends WatchUi.WatchFace {
 
     // Lit segments and the label inside each bar. Every bar reads full = good, so Move drains.
     function drawBars(dc as Dc, sec as Number) as Void {
-        var f = font(13);
+        var f = font((13 * S).toNumber());
         for (var k = 0; k < 4; k++) {
             var d = barValues[k] as Array?;
             if (bars[k] == 0 || d == null) { continue; }
@@ -230,9 +235,9 @@ class PantherView extends WatchUi.WatchFace {
     // Hybrid: stacked hours, minutes and seconds right of centre, under the hands.
     function drawDigits(dc as Dc, ct as System.ClockTime) as Void {
         dc.setColor(0xf5f6f7, Graphics.COLOR_TRANSPARENT);
-        text(dc, 345, 178, 92, Fields.hour(ct.hour));
-        text(dc, 345, 262, 92, ct.min.format("%02d"));
-        text(dc, 345, 322, 36, ct.sec.format("%02d"));
+        text(dc, 345 * S, 178 * S, 92, Fields.hour(ct.hour));
+        text(dc, 345 * S, 262 * S, 92, ct.min.format("%02d"));
+        text(dc, 345 * S, 322 * S, 36, ct.sec.format("%02d"));
     }
 
     // Chronos-style subdial: a dark plate lit from the upper left, hairline rim, thin progress ring.
@@ -262,29 +267,29 @@ class PantherView extends WatchUi.WatchFace {
             for (var i = 0; i < 7; i++) {
                 var a = i * 2 * Math.PI / 7, k = (today + i) % 7;
                 dc.setColor(i == 0 ? accent() : 0x9278a6, Graphics.COLOR_TRANSPARENT);
-                text(dc, x + Math.sin(a) * (r - 10), y - Math.cos(a) * (r - 10), 10, days.substring(k, k + 1) as String);
+                text(dc, x + Math.sin(a) * (r - 10 * S), y - Math.cos(a) * (r - 10 * S), 10, days.substring(k, k + 1) as String);
             }
             dc.setColor(0xf5f6f7, Graphics.COLOR_TRANSPARENT);
-            text(dc, x, y - 4, (r * 0.5).toNumber() / 2 * 2, value);
+            text(dc, x, y - 4 * S, (r * 0.5 / S).toNumber() / 2 * 2, value);
             dc.setColor(0x9278a6, Graphics.COLOR_TRANSPARENT);
-            text(dc, x, y + 15, 12, d[2] as String);
+            text(dc, x, y + 15 * S, 12, d[2] as String);
             return;
         }
         drawIcon(dc, id, x - 7, y - r * 0.5 - 4);
-        var size = r * 0.5, fitSize = r * 1.5 / (value.length() * 0.62);
+        var size = r * 0.5 / S, fitSize = r * 1.5 / S / (value.length() * 0.62);
         dc.setColor(0xf5f6f7, Graphics.COLOR_TRANSPARENT);
         // Even sizes only, to bound the font cache.
-        text(dc, x, y + 2, (size < fitSize ? size : fitSize).toNumber() / 2 * 2, value);
+        text(dc, x, y + 2 * S, (size < fitSize ? size : fitSize).toNumber() / 2 * 2, value);
         if (d[2] != null) {
             dc.setColor(id == Fields.WEATHER ? 0xf5f6f7 : accent(), Graphics.COLOR_TRANSPARENT);
             text(dc, x, y + r * 0.45, id == Fields.WEATHER ? 12 : 11, d[2] as String);
         }
     }
 
-    function drawHand(dc as Dc, shape as Array<Array<Number>>, deg as Float, cx as Number, cy as Number, filled as Boolean) as Void {
+    function drawHand(dc as Dc, shape as Array<Array<Number>>, deg as Float, cx as Numeric, cy as Numeric, filled as Boolean) as Void {
         var a = deg * Math.PI / 180, s = Math.sin(a), c = Math.cos(a), pts = [] as Array<[Numeric, Numeric]>;
         for (var i = 0; i < shape.size(); i++) {
-            var px = shape[i][0], py = shape[i][1];
+            var px = shape[i][0] * S, py = shape[i][1] * S;
             pts.add([cx + px * c - py * s, cy + px * s + py * c]);
         }
         if (filled) {
@@ -306,11 +311,11 @@ class PantherView extends WatchUi.WatchFace {
         var a = deg * Math.PI / 180, s = Math.sin(a), c = Math.cos(a);
         dc.setColor(accent(), Graphics.COLOR_TRANSPARENT);
         dc.setPenWidth(2);
-        dc.drawLine(CX - s * 25, CX + c * 25, CX + s * 184, CX - c * 184);
+        dc.drawLine(CX - s * 25 * S, CX + c * 25 * S, CX + s * 184 * S, CX - c * 184 * S);
         dc.setColor(0x08030d, Graphics.COLOR_TRANSPARENT);
-        dc.fillCircle(CX - s * 20, CX + c * 20, 4);
+        dc.fillCircle(CX - s * 20 * S, CX + c * 20 * S, 4 * S);
         dc.setColor(accent(), Graphics.COLOR_TRANSPARENT);
-        dc.drawCircle(CX - s * 20, CX + c * 20, 4);
+        dc.drawCircle(CX - s * 20 * S, CX + c * 20 * S, 4 * S);
     }
 
     // ADR 0003: 1 px outlines, no filled hub, frame shifted by minute so no pixel stays lit 3 updates.
@@ -318,7 +323,7 @@ class PantherView extends WatchUi.WatchFace {
         var sh = SHIFTS[m % 4], cx = CX + sh[0], cy = CX + sh[1], hs = Layout.hands(m);
         drawHand(dc, HOUR_AOD, hs[0][0], cx, cy, false);
         drawHand(dc, MINUTE_AOD, hs[1][0], cx, cy, false);
-        dc.drawCircle(cx, cy, 6);
+        dc.drawCircle(cx, cy, 6 * S);
     }
 
     // Icons from the prototype's dataIcon, in a 14x14 box at (ox, oy).

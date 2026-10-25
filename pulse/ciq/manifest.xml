@@ -3,6 +3,15 @@
     <iq:application id="c06b17b6d50344789f3f17e316994e19" type="watchface" name="@Strings.AppName" entry="PantherApp" launcherIcon="@Drawables.LauncherIcon" minApiLevel="4.2.1">
         <iq:products>
             <iq:product id="fr965"/>
+            <iq:product id="fr970"/>
+            <iq:product id="fenix843mm"/>
+            <iq:product id="fenix847mm"/>
+            <iq:product id="fenix8pro47mm"/>
+            <iq:product id="fenix943mm"/>
+            <iq:product id="fenix947mm"/>
+            <iq:product id="fenix9pro43mm"/>
+            <iq:product id="fenix9pro47mm"/>
+            <iq:product id="fenix9pro51mm"/>
         </iq:products>
         <iq:permissions>
             <iq:uses-permission id="ComplicationSubscriber"/>

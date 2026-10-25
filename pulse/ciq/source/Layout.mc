@@ -4,13 +4,24 @@ import Toybox.Math;
 // Port of the prototype's layout engine (crossover_965_bast_pulse.html:32-41) plus ADR 0002.
 // All geometry is in 454x454 screen pixels, angles in degrees clockwise from 12.
 module Layout {
-    const CX = 227.0;
-    const RING = 133.0;
-    const EDGE = 186.0;     // just inside the corner-bar labels (ADR 0005)
-    const HOUR_LEN = 117.0;
-    const MIN_LEN = 170.0;
-    const BLOCK = 60.0;      // = start radius 44 + hand clearance 16
     const HOMES = [0, 2, 4, 6];
+    // Design values at 454 px, rescaled by setup() to the real screen width.
+    var S as Float = 1.0;
+    var CX as Float = 227.0;
+    var RING as Float = 133.0;
+    var EDGE as Float = 186.0;     // just inside the corner-bar labels (ADR 0005)
+    var HOUR_LEN as Float = 117.0;
+    var MIN_LEN as Float = 170.0;
+    var BLOCK as Float = 60.0;      // = start radius 44 + hand clearance 16
+    var R0 as Float = 44.0;
+    var PAD as Float = 16.0;
+    var GAP as Float = 7.0;
+
+    function setup(width as Number) as Void {
+        S = width / 454.0;
+        CX = 227.0 * S; RING = 133.0 * S; EDGE = 186.0 * S; HOUR_LEN = 117.0 * S; MIN_LEN = 170.0 * S;
+        R0 = 44.0 * S; PAD = 16.0 * S; GAP = 7.0 * S; BLOCK = R0 + PAD;
+    }
 
     function slotXY(s as Number) as Array<Float> {
         var a = s * Math.PI / 4;
@@ -97,21 +108,21 @@ module Layout {
     function fit(slots as Array<Number>, m as Number) as Array {
         var cs = new [slots.size()];
         for (var i = 0; i < slots.size(); i++) {
-            if (slots[i] >= 0) { var p = slotXY(slots[i]); cs[i] = [p[0], p[1], 44.0]; }
+            if (slots[i] >= 0) { var p = slotXY(slots[i]); cs[i] = [p[0], p[1], R0]; }
         }
         for (var step = 0; step < 20; step++) {
             for (var i = 0; i < cs.size(); i++) {
                 if (cs[i] == null) { continue; }
-                var base = slotXY(slots[i]), r = (cs[i] as Array<Float>)[2] + 1;
-                var ratio = (RING - (r - 44) * 0.7) / RING;
+                var base = slotXY(slots[i]), r = (cs[i] as Array<Float>)[2] + S;
+                var ratio = (RING - (r - R0) * 0.7) / RING;
                 var x = CX + (base[0] - CX) * ratio, y = CX + (base[1] - CX) * ratio;
                 if (Math.sqrt((x - CX) * (x - CX) + (y - CX) * (y - CX)) + r > EDGE) { continue; }
-                if (clearance(x, y, m) < r + 16) { continue; }
+                if (clearance(x, y, m) < r + PAD) { continue; }
                 var hit = false;
                 for (var j = 0; j < cs.size(); j++) {
                     var q = cs[j] as Array<Float>?;
                     if (q == null || j == i) { continue; }
-                    if (Math.sqrt((x - q[0]) * (x - q[0]) + (y - q[1]) * (y - q[1])) < r + q[2] + 7) { hit = true; break; }
+                    if (Math.sqrt((x - q[0]) * (x - q[0]) + (y - q[1]) * (y - q[1])) < r + q[2] + GAP) { hit = true; break; }
                 }
                 if (!hit) { cs[i] = [x, y, r]; }
             }
