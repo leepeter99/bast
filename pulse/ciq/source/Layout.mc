@@ -12,15 +12,15 @@ module Layout {
     var EDGE as Float = 186.0;     // just inside the corner-bar labels (ADR 0005)
     var HOUR_LEN as Float = 117.0;
     var MIN_LEN as Float = 170.0;
-    var BLOCK as Float = 60.0;      // = start radius 44 + hand clearance 16
-    var R0 as Float = 44.0;
-    var PAD as Float = 16.0;
+    var BLOCK as Float = 60.0;      // = start radius 50 + hand clearance 12
+    var R0 as Float = 50.0;
+    var PAD as Float = 12.0;
     var GAP as Float = 7.0;
 
     function setup(width as Number) as Void {
         S = width / 454.0;
         CX = 227.0 * S; RING = 133.0 * S; EDGE = 186.0 * S; HOUR_LEN = 117.0 * S; MIN_LEN = 170.0 * S;
-        R0 = 44.0 * S; PAD = 16.0 * S; GAP = 7.0 * S; BLOCK = R0 + PAD;
+        R0 = 50.0 * S; PAD = 12.0 * S; GAP = 7.0 * S; BLOCK = R0 + PAD;
     }
 
     function slotXY(s as Number) as Array<Float> {
@@ -103,14 +103,14 @@ module Layout {
         return out;
     }
 
-    // Grow each gauge from r 44 toward the centre (prototype fitCircles). The edge caps r at 54.
+    // Grow each gauge from r 50 toward the centre (prototype fitCircles). The edge caps r at 54.
     // Returns [x, y, r] per field, or null when hidden.
     function fit(slots as Array<Number>, m as Number) as Array {
         var cs = new [slots.size()];
         for (var i = 0; i < slots.size(); i++) {
             if (slots[i] >= 0) { var p = slotXY(slots[i]); cs[i] = [p[0], p[1], R0]; }
         }
-        for (var step = 0; step < 20; step++) {
+        for (var step = 0; step < 24; step++) {
             for (var i = 0; i < cs.size(); i++) {
                 if (cs[i] == null) { continue; }
                 var base = slotXY(slots[i]), r = (cs[i] as Array<Float>)[2] + S;

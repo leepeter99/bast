@@ -204,6 +204,13 @@ class PantherView extends WatchUi.WatchFace {
                 label = Fields.str(Rez.Strings.LSteps) + " " + d[(d.size() > 3 ? 3 : 0)];
             } else if (id == Fields.BODY) {
                 label = Fields.str(Rez.Strings.LBody) + " " + d[0];
+            } else if (id == Fields.STRESS) {
+                // Full = calm, like the other bars.
+                lit = p == null ? 0 : ((1 - p) * n).toNumber();
+                label = Fields.str(Rez.Strings.LStress) + " " + d[0];
+                if (p != null && p > 0.75) { col = accentIdx == AMBER ? 0xff5a5a : 0xff993d; }
+            } else if (id == Fields.FLOORS) {
+                label = Fields.str(Rez.Strings.LFloors) + " " + d[0];
             } else if (id == Fields.MOVE) {
                 if (moveLevel < 0) { lit = 0; label = Fields.str(Rez.Strings.LMove) + " --"; }
                 else if (moveLevel == 0) {
@@ -270,19 +277,19 @@ class PantherView extends WatchUi.WatchFace {
                 text(dc, x + Math.sin(a) * (r - 10 * S), y - Math.cos(a) * (r - 10 * S), 10, days.substring(k, k + 1) as String);
             }
             dc.setColor(0xf5f6f7, Graphics.COLOR_TRANSPARENT);
-            text(dc, x, y - 4 * S, (r * 0.5 / S).toNumber() / 2 * 2, value);
+            text(dc, x, y - 5 * S, (r * 0.6 / S).toNumber() / 2 * 2, value);
             dc.setColor(0x9278a6, Graphics.COLOR_TRANSPARENT);
-            text(dc, x, y + 15 * S, 12, d[2] as String);
+            text(dc, x, y + 18 * S, 13, d[2] as String);
             return;
         }
-        drawIcon(dc, id, x - 7, y - r * 0.5 - 4);
-        var size = r * 0.5 / S, fitSize = r * 1.5 / S / (value.length() * 0.62);
+        drawIcon(dc, id, x - 7, y - r * 0.55 - 4);
+        var size = r * 0.64 / S, fitSize = r * 1.5 / S / (value.length() * 0.62);
         dc.setColor(0xf5f6f7, Graphics.COLOR_TRANSPARENT);
         // Even sizes only, to bound the font cache.
         text(dc, x, y + 2 * S, (size < fitSize ? size : fitSize).toNumber() / 2 * 2, value);
         if (d[2] != null) {
             dc.setColor(id == Fields.WEATHER ? 0xf5f6f7 : accent(), Graphics.COLOR_TRANSPARENT);
-            text(dc, x, y + r * 0.45, id == Fields.WEATHER ? 12 : 11, d[2] as String);
+            text(dc, x, y + r * 0.45, 13, d[2] as String);
         }
     }
 
@@ -357,6 +364,29 @@ class PantherView extends WatchUi.WatchFace {
             dc.drawCircle(ox + 7, oy + 7, 6);
             dc.drawEllipse(ox + 7, oy + 7, 2, 6);
             line(dc, ox, oy, 1, 7, 13, 7);
+        } else if (id == Fields.FLOORS) {
+            poly(dc, [[0, 13], [4, 13], [4, 9], [8, 9], [8, 5], [12, 5], [12, 1], [14, 1]], ox, oy, false);
+        } else if (id == Fields.PULSEOX) {
+            poly(dc, [[7, 0], [12, 7], [12, 10], [10, 13], [4, 13], [2, 10], [2, 7]], ox, oy, true);
+        } else if (id == Fields.RESP) {
+            poly(dc, [[0, 4], [4, 1], [8, 4], [12, 1]], ox, oy, false);
+            poly(dc, [[0, 10], [4, 7], [8, 10], [12, 7]], ox, oy, false);
+        } else if (id == Fields.HILOW) {
+            dc.drawRoundedRectangle(ox + 5, oy, 4, 10, 2);
+            dc.drawCircle(ox + 7, oy + 11, 3);
+        } else if (id == Fields.BIKE) {
+            dc.drawCircle(ox + 3, oy + 10, 3); dc.drawCircle(ox + 11, oy + 10, 3);
+            poly(dc, [[3, 10], [6, 3], [11, 10]], ox, oy, false);
+        } else if (id == Fields.RUN) {
+            dc.drawCircle(ox + 8, oy + 2, 2);
+            poly(dc, [[7, 5], [4, 9], [0, 10]], ox, oy, false);
+            poly(dc, [[7, 5], [10, 8], [13, 7]], ox, oy, false);
+            poly(dc, [[7, 5], [7, 9], [10, 13]], ox, oy, false);
+        } else if (id == Fields.ALTITUDE) {
+            poly(dc, [[0, 13], [5, 4], [8, 9], [10, 6], [14, 13]], ox, oy, true);
+        } else if (id == Fields.PRESSURE) {
+            dc.drawCircle(ox + 7, oy + 7, 6);
+            line(dc, ox, oy, 7, 7, 10, 3);
         } else if (id == Fields.STRESS) {
             poly(dc, [[0, 7], [3, 7], [5, 2], [8, 12], [10, 7], [14, 7]], ox, oy, false);
         } else if (id == Fields.CALORIES) {

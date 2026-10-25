@@ -14,12 +14,12 @@ import Toybox.WatchUi;
 // DataProvider (ADR 0001): complications first, direct APIs otherwise.
 // read() returns [text, progress 0..1 or null, caption or null]. Missing data shows "--" (Unavailable).
 module Fields {
-    enum { HEART, RESTING, RECOVERY, BODY, WEATHER, BATTERY, STEPS, DATE, CALORIES, DISTANCE, SUNRISE, STRESS, ZONE, MOVE }
-    const COUNT = 14;
+    enum { HEART, RESTING, RECOVERY, BODY, WEATHER, BATTERY, STEPS, DATE, CALORIES, DISTANCE, SUNRISE, STRESS, ZONE, MOVE, FLOORS, PULSEOX, RESP, HILOW, BIKE, RUN, ALTITUDE, PRESSURE }
+    const COUNT = 22;
     // Gauge defaults per position (top, right, bottom, left).
     const DEFAULTS = [DATE, BATTERY, WEATHER, HEART];
-    // Corner bar options: Off, Steps, Body Battery, Move, Recovery (ADR 0005).
-    const BAR_IDS = [-1, STEPS, BODY, MOVE, RECOVERY];
+    // Corner bar options: Off, Steps, Body Battery, Move, Recovery, Stress, Floors (ADR 0005).
+    const BAR_IDS = [-1, STEPS, BODY, MOVE, RECOVERY, STRESS, FLOORS];
     // Upper left, upper right, lower left, lower right.
     const BAR_DEFAULTS = [1, 3, 2, 4];
 
@@ -37,7 +37,7 @@ module Fields {
 
     // Metrics shown only on the corner bars, never as a gauge.
     function fixed(id as Number) as Boolean {
-        return id == STEPS || id == BODY || id == MOVE || id == RECOVERY;
+        return id == STEPS || id == BODY || id == MOVE || id == RECOVERY || id == FLOORS;
     }
 
     // The gauge at position i, falling back to its default for stale or bar-only values.
@@ -79,7 +79,9 @@ module Fields {
     function name(id as Number) as String {
         return str([
             Rez.Strings.M0, Rez.Strings.M1, Rez.Strings.M2, Rez.Strings.M3, Rez.Strings.M4, Rez.Strings.M5, Rez.Strings.M6,
-            Rez.Strings.M7, Rez.Strings.M8, Rez.Strings.M9, Rez.Strings.M10, Rez.Strings.M11, Rez.Strings.M12, Rez.Strings.M13
+            Rez.Strings.M7, Rez.Strings.M8, Rez.Strings.M9, Rez.Strings.M10, Rez.Strings.M11, Rez.Strings.M12, Rez.Strings.M13,
+            Rez.Strings.M14, Rez.Strings.M15, Rez.Strings.M16, Rez.Strings.M17, Rez.Strings.M18,
+            Rez.Strings.M19, Rez.Strings.M20, Rez.Strings.M21
         ][index(id, COUNT, 0)] as ResourceId);
     }
 
@@ -154,11 +156,43 @@ module Fields {
             var mi = System.getDeviceSettings().distanceUnits == System.UNIT_STATUTE;
             return [(cm / (mi ? 160934.4 : 100000.0)).format("%.1f") + str(mi ? Rez.Strings.Miles : Rez.Strings.Km), null, null];
         } else if (id == SUNRISE) {
-            // Seconds since local midnight.
-            var v = complication(Complications.COMPLICATION_TYPE_SUNRISE);
+            // Next sun event today, else tomorrow's sunrise. Both are seconds since local midnight.
+            var up = complication(Complications.COMPLICATION_TYPE_SUNRISE), down = complication(Complications.COMPLICATION_TYPE_SUNSET);
+            var ct = System.getClockTime(), now = ct.hour * 3600 + ct.min * 60;
+            var rise = up != null && (down == null || now < up || now >= down);
+            var v = rise ? up : down;
             if (v == null) { return none; }
             var t = v.toNumber();
-            return [hhmm(t / 3600 % 24, t / 60 % 60), null, null];
+            return [hhmm(t / 3600 % 24, t / 60 % 60), null, str(rise ? Rez.Strings.Rise : Rez.Strings.Set)];
+        } else if (id == FLOORS) {
+            var info = ActivityMonitor.getInfo(), f = info.floorsClimbed, g = info.floorsClimbedGoal;
+            if (f == null) { return none; }
+            return [f.toString(), g == null || g <= 0 ? null : (f >= g ? 1.0 : f.toFloat() / g), null];
+        } else if (id == PULSEOX) {
+            var v = complication(Complications.COMPLICATION_TYPE_PULSE_OX);
+            return v == null ? none : [v.toNumber() + "%", null, "SpO2"];
+        } else if (id == RESP) {
+            var v = complication(Complications.COMPLICATION_TYPE_RESPIRATION_RATE);
+            return v == null ? none : [v.toNumber().toString(), null, "BR/M"];
+        } else if (id == HILOW) {
+            var cc = Weather.getCurrentConditions();
+            if (cc == null || cc.lowTemperature == null || cc.highTemperature == null) { return none; }
+            return [temp(cc.lowTemperature as Numeric) + "/" + temp(cc.highTemperature as Numeric), null, "LO/HI"];
+        } else if (id == BIKE || id == RUN) {
+            // The complications report metres.
+            var v = complication(id == BIKE ? Complications.COMPLICATION_TYPE_WEEKLY_BIKE_DISTANCE : Complications.COMPLICATION_TYPE_WEEKLY_RUN_DISTANCE);
+            if (v == null) { return none; }
+            var mi = System.getDeviceSettings().distanceUnits == System.UNIT_STATUTE;
+            return [(v / (mi ? 1609.344 : 1000.0)).format("%.1f") + str(mi ? Rez.Strings.Miles : Rez.Strings.Km), null, "WEEK"];
+        } else if (id == ALTITUDE) {
+            var v = complication(Complications.COMPLICATION_TYPE_ALTITUDE);
+            if (v == null) { return none; }
+            var ft = System.getDeviceSettings().elevationUnits == System.UNIT_STATUTE;
+            return [Math.round(ft ? v * 3.28084 : v).toNumber() + (ft ? "ft" : "m"), null, "ALT"];
+        } else if (id == PRESSURE) {
+            // Pascals on current firmware; a small value is taken to be hPa already.
+            var v = complication(Complications.COMPLICATION_TYPE_SEA_LEVEL_PRESSURE);
+            return v == null ? none : [Math.round(v > 2000 ? v / 100.0 : v).toNumber().toString(), null, "hPa"];
         } else if (id == MOVE) {
             // Move bar: 0 = active, 1+ = alert (first segment after 1 h idle), 5 = full. The view tracks resets.
             var v = ActivityMonitor.getInfo().moveBarLevel;

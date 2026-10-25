@@ -12,7 +12,7 @@ function positionName(i as Number) as String { return res([Rez.Strings.Top, Rez.
 
 function cornerName(k as Number) as String { return res([Rez.Strings.Bar0, Rez.Strings.Bar1, Rez.Strings.Bar2, Rez.Strings.Bar3][k] as ResourceId); }
 
-function barName(b as Number) as String { return res([Rez.Strings.B0, Rez.Strings.B1, Rez.Strings.B2, Rez.Strings.B3, Rez.Strings.B4][b] as ResourceId); }
+function barName(b as Number) as String { return res([Rez.Strings.B0, Rez.Strings.B1, Rez.Strings.B2, Rez.Strings.B3, Rez.Strings.B4, Rez.Strings.B5, Rez.Strings.B6][b] as ResourceId); }
 
 function styleName(t as Number) as String { return res(t == 1 ? Rez.Strings.T1 : Rez.Strings.T0); }
 
