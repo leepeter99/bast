@@ -1,4 +1,4 @@
-• Bigger gauges with larger text, so readings are easier to see at a glance.
+• Cleaner, bigger gauges in the Chronos style: a flat dial with a dark rim, and text that grows with the gauge, including larger weekday letters on the date.
 • Sunrise is now Sunrise / Sunset and shows whichever sun event is next.
 • Stress and Floors climbed can now sit on the corner bars; Stress stays available as a gauge.
 • New gauges: Pulse Ox, Respiration, High / low temperature, Weekly bike distance, Weekly run distance, Altitude and Barometric pressure.

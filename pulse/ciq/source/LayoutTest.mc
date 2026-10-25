@@ -10,7 +10,7 @@ function sweep(fields as Array<Number>, closed as Array<Boolean>) as Void {
     var last = [0, 2, 4, 6];
     for (var t = 0; t < 1440; t++) {
         var m = t % 720, now = Layout.blockedAt(m), next = Layout.blockedAt(m + 1);
-        var out = Layout.assign(m, fields, last, closed), cs = Layout.fit(out, m);
+        var out = Layout.assign(m, fields, last, closed), cs = Layout.fit(out, m, closed[1] ? Layout.DIGITS_X : 9999.0);
         for (var i = 0; i < 4; i++) {
             var s = out[i], was = last[i], home = Layout.HOMES[i];
             if (fields[i] < 0) { Test.assertEqual(s, -1); }
@@ -18,6 +18,7 @@ function sweep(fields as Array<Number>, closed as Array<Boolean>) as Void {
             Test.assertMessage(!closed[s], "gauge in a closed slot at " + m);
             var c = cs[i] as Array<Float>;
             Test.assertMessage(Layout.clearance(c[0], c[1], m) >= c[2] + Layout.PAD, "gauge under a hand at " + m);
+            Test.assertMessage(!closed[1] || c[0] + c[2] <= Layout.DIGITS_X, "gauge over the Hybrid digits at " + m);
             if (s == was) { continue; }
             Test.assertMessage(!now[s] && !next[s], "moved into a slot not free at m and m+1, at " + m);
             if (was >= 0 && was != home && s != home) {

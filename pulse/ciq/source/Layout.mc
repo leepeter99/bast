@@ -12,15 +12,16 @@ module Layout {
     var EDGE as Float = 186.0;     // just inside the corner-bar labels (ADR 0005)
     var HOUR_LEN as Float = 117.0;
     var MIN_LEN as Float = 170.0;
-    var BLOCK as Float = 60.0;      // = start radius 50 + hand clearance 12
-    var R0 as Float = 50.0;
+    var BLOCK as Float = 59.0;      // = start radius 47 + hand clearance 12
+    var R0 as Float = 47.0;      // adjacent slots are 102 apart: 2 x 47 + GAP
     var PAD as Float = 12.0;
     var GAP as Float = 7.0;
+    var DIGITS_X as Float = 298.0; // Hybrid digits start at x ~305
 
     function setup(width as Number) as Void {
         S = width / 454.0;
         CX = 227.0 * S; RING = 133.0 * S; EDGE = 186.0 * S; HOUR_LEN = 117.0 * S; MIN_LEN = 170.0 * S;
-        R0 = 50.0 * S; PAD = 12.0 * S; GAP = 7.0 * S; BLOCK = R0 + PAD;
+        R0 = 47.0 * S; PAD = 12.0 * S; GAP = 7.0 * S; DIGITS_X = 298.0 * S; BLOCK = R0 + PAD;
     }
 
     function slotXY(s as Number) as Array<Float> {
@@ -103,20 +104,17 @@ module Layout {
         return out;
     }
 
-    // Grow each gauge from r 50 toward the centre (prototype fitCircles). The edge caps r at 54.
+    // Grow each gauge from r 47 toward the centre (prototype fitCircles), one pixel per pass, until it
+    // meets the edge, a hand or a neighbour. Two gauges in adjacent slots stay at 47; others grow to ~85.
+    // `maxX` keeps gauges left of the Hybrid digits (pass 9999 when there are none).
     // Returns [x, y, r] per field, or null when hidden.
-    function fit(slots as Array<Number>, m as Number) as Array {
-        var cs = new [slots.size()];
-        for (var i = 0; i < slots.size(); i++) {
-            if (slots[i] >= 0) { var p = slotXY(slots[i]); cs[i] = [p[0], p[1], R0]; }
-        }
-        for (var step = 0; step < 24; step++) {
+    function fit(slots as Array<Number>, m as Number, maxX as Float) as Array {
+        var cs = place(slots, R0);
+        for (var step = 0; step < 40; step++) {
             for (var i = 0; i < cs.size(); i++) {
                 if (cs[i] == null) { continue; }
-                var base = slotXY(slots[i]), r = (cs[i] as Array<Float>)[2] + S;
-                var ratio = (RING - (r - R0) * 0.7) / RING;
-                var x = CX + (base[0] - CX) * ratio, y = CX + (base[1] - CX) * ratio;
-                if (Math.sqrt((x - CX) * (x - CX) + (y - CX) * (y - CX)) + r > EDGE) { continue; }
+                var r = (cs[i] as Array<Float>)[2] + S, c = place(slots, r)[i] as Array<Float>, x = c[0], y = c[1];
+                if (Math.sqrt((x - CX) * (x - CX) + (y - CX) * (y - CX)) + r > EDGE || x + r > maxX) { continue; }
                 if (clearance(x, y, m) < r + PAD) { continue; }
                 var hit = false;
                 for (var j = 0; j < cs.size(); j++) {
@@ -124,8 +122,19 @@ module Layout {
                     if (q == null || j == i) { continue; }
                     if (Math.sqrt((x - q[0]) * (x - q[0]) + (y - q[1]) * (y - q[1])) < r + q[2] + GAP) { hit = true; break; }
                 }
-                if (!hit) { cs[i] = [x, y, r]; }
+                if (!hit) { cs[i] = c; }
             }
+        }
+        return cs;
+    }
+
+    // Gauges of radius r, pulled toward the centre one pixel per pixel of growth past R0.
+    function place(slots as Array<Number>, r as Float) as Array {
+        var cs = new [slots.size()], ratio = (RING - (r - R0)) / RING;
+        for (var i = 0; i < slots.size(); i++) {
+            if (slots[i] < 0) { continue; }
+            var p = slotXY(slots[i]);
+            cs[i] = [CX + (p[0] - CX) * ratio, CX + (p[1] - CX) * ratio, r];
         }
         return cs;
     }

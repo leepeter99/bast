@@ -91,7 +91,7 @@ class PantherView extends WatchUi.WatchFace {
         if (m != cachedMin) {
             slots = Layout.assign(m, fields, last, hybrid ? HYBRID_CLOSED : OPEN);
             last = slots;
-            circles = Layout.fit(slots, m);
+            circles = Layout.fit(slots, m, hybrid ? Layout.DIGITS_X : 9999.0);
             for (var i = 0; i < 4; i++) {
                 values[i] = fields[i] < 0 ? null : Fields.read(fields[i]);
                 barValues[i] = bars[i] == 0 ? null : Fields.read(Fields.BAR_IDS[bars[i]] as Number);
@@ -247,16 +247,13 @@ class PantherView extends WatchUi.WatchFace {
         text(dc, 345 * S, 322 * S, 36, ct.sec.format("%02d"));
     }
 
-    // Chronos-style subdial: a dark plate lit from the upper left, hairline rim, thin progress ring.
+    // Chronos-style subdial: a flat plate inside a darker rim, thin progress ring.
     function drawGauge(dc as Dc, id as Number, c as Array<Float>, d as Array) as Void {
         var x = c[0], y = c[1], r = c[2], value = d[0] as String, p = d[1] as Float?;
-        dc.setColor(0x0d0813, Graphics.COLOR_TRANSPARENT);
+        dc.setColor(0x0b0710, Graphics.COLOR_TRANSPARENT);
         dc.fillCircle(x, y, r);
-        dc.setColor(0x1c1426, Graphics.COLOR_TRANSPARENT);
-        dc.fillCircle(x - r * 0.1, y - r * 0.12, r * 0.82);
-        dc.setPenWidth(2);
-        dc.setColor(0x3d2b4d, Graphics.COLOR_TRANSPARENT);
-        dc.drawCircle(x, y, r);
+        dc.setColor(0x1a1224, Graphics.COLOR_TRANSPARENT);
+        dc.fillCircle(x, y, r - 5 * S);
         if (p != null) {
             dc.setPenWidth(3);
             dc.setColor(TRACK, Graphics.COLOR_TRANSPARENT);
@@ -274,22 +271,24 @@ class PantherView extends WatchUi.WatchFace {
             for (var i = 0; i < 7; i++) {
                 var a = i * 2 * Math.PI / 7, k = (today + i) % 7;
                 dc.setColor(i == 0 ? accent() : 0x9278a6, Graphics.COLOR_TRANSPARENT);
-                text(dc, x + Math.sin(a) * (r - 10 * S), y - Math.cos(a) * (r - 10 * S), 10, days.substring(k, k + 1) as String);
+                text(dc, x + Math.sin(a) * (r - 14 * S), y - Math.cos(a) * (r - 14 * S), (r * 0.2 / S + 6).toNumber() / 2 * 2, days.substring(k, k + 1) as String);
             }
             dc.setColor(0xf5f6f7, Graphics.COLOR_TRANSPARENT);
-            text(dc, x, y - 5 * S, (r * 0.6 / S).toNumber() / 2 * 2, value);
-            dc.setColor(0x9278a6, Graphics.COLOR_TRANSPARENT);
-            text(dc, x, y + 18 * S, 13, d[2] as String);
+            text(dc, x, y - r * 0.2, (r * 0.66 / S).toNumber() / 2 * 2, value);
+            dc.setColor(0xb9a6c9, Graphics.COLOR_TRANSPARENT);
+            text(dc, x, y + r * 0.27, (r * 0.34 / S).toNumber() / 2 * 2, d[2] as String);
             return;
         }
-        drawIcon(dc, id, x - 7, y - r * 0.55 - 4);
-        var size = r * 0.64 / S, fitSize = r * 1.5 / S / (value.length() * 0.62);
+        // Icon, value, then the optional second line, stacked like the Chronos subdials.
+        var sub = d[2] != null;
+        drawIcon(dc, id, x - 7, y - r * (sub ? 0.62 : 0.55) - 4);
+        var size = r * (sub ? 0.56 : 0.64) / S, fitSize = r * 1.5 / S / (value.length() * 0.62);
         dc.setColor(0xf5f6f7, Graphics.COLOR_TRANSPARENT);
         // Even sizes only, to bound the font cache.
-        text(dc, x, y + 2 * S, (size < fitSize ? size : fitSize).toNumber() / 2 * 2, value);
-        if (d[2] != null) {
+        text(dc, x, y + (sub ? -r * 0.04 : 2 * S), (size < fitSize ? size : fitSize).toNumber() / 2 * 2, value);
+        if (sub) {
             dc.setColor(id == Fields.WEATHER ? 0xf5f6f7 : accent(), Graphics.COLOR_TRANSPARENT);
-            text(dc, x, y + r * 0.45, 13, d[2] as String);
+            text(dc, x, y + r * 0.5, (r * 0.34 / S).toNumber() / 2 * 2, d[2] as String);
         }
     }
 
