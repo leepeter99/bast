@@ -1,10 +1,12 @@
 import Toybox.Application;
 import Toybox.Lang;
+import Toybox.System;
 import Toybox.Test;
 import Toybox.Time;
 
 // Sweeps two full 12-hour cycles and checks ADR 0002 plus hand clearance and closed slots.
 function sweep(fields as Array<Number>, closed as Array<Boolean>) as Void {
+    Layout.setup(System.getDeviceSettings().screenWidth);
     var last = [0, 2, 4, 6];
     for (var t = 0; t < 1440; t++) {
         var m = t % 720, now = Layout.blockedAt(m), next = Layout.blockedAt(m + 1);
@@ -15,7 +17,7 @@ function sweep(fields as Array<Number>, closed as Array<Boolean>) as Void {
             if (s < 0) { continue; }
             Test.assertMessage(!closed[s], "gauge in a closed slot at " + m);
             var c = cs[i] as Array<Float>;
-            Test.assertMessage(Layout.clearance(c[0], c[1], m) >= c[2] + 16, "gauge under a hand at " + m);
+            Test.assertMessage(Layout.clearance(c[0], c[1], m) >= c[2] + Layout.PAD, "gauge under a hand at " + m);
             if (s == was) { continue; }
             Test.assertMessage(!now[s] && !next[s], "moved into a slot not free at m and m+1, at " + m);
             if (was >= 0 && was != home && s != home) {
