@@ -38,12 +38,16 @@ _Avoid_: Badge, bubble, circle
 The thin ring on a gauge's rim that fills to show a reading against its natural range. Only fields with such a range have one.
 _Avoid_: Ring fill, meter
 
+**Sun event**:
+What the Sunrise / Sunset field shows: the next sunrise or sunset today, or tomorrow's sunrise once the sun has set. Its caption reads RISE or SET.
+_Avoid_: Sunrise time, daylight
+
 **Corner bar**:
 A segmented bar along the dial edge in one of four corners, showing one bar metric or turned off. Its fill always tracks the real value. Minute ticks show only where no corner bar is drawn.
 _Avoid_: Arc gauge, bezel, side field
 
 **Bar metric**:
-What a corner bar shows: Steps, Body Battery, Move alert or Recovery. A bar metric is never a field, so it never relocates or hides behind the hands. Each one appears on at most one corner.
+What a corner bar shows: Steps, Body Battery, Move alert, Recovery, Stress or Floors climbed. Stress is also a field. Every other bar metric is never a field, so it never relocates or hides behind the hands. Each one appears on at most one corner. Every bar reads full = good, so the Stress bar fills as the wearer calms.
 _Avoid_: Field, side field
 
 **Move alert**:
