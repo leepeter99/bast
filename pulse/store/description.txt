@@ -1,7 +1,7 @@
 bast_pulse is an analog watch face for AMOLED Garmin watches with data gauges that move out of the way of the hands, and four segmented corner bars along the edge for your daily progress.
 
 GAUGES
-Four circular gauges sit at the top, right, bottom and left of the dial. When the hour or minute hand passes over a gauge, it moves to a free spot so the reading stays visible. Fields with a natural range, such as watch battery, show a progress arc.
+Four large circular gauges sit at the top, right, bottom and left of the dial. When the hour or minute hand passes over a gauge, it moves to a free spot so the reading stays visible. Fields with a natural range, such as watch battery, show a progress arc.
 
 Pick any four of:
 • Heart rate
@@ -11,14 +11,22 @@ Pick any four of:
 • Date with weekday
 • Calories
 • Distance (km or mi, from your device settings)
-• Sunrise
+• Sunrise / Sunset (shows whichever is next)
 • Stress
+• Pulse Ox
+• Respiration
+• High / low temperature
+• Weekly bike distance
+• Weekly run distance
+• Altitude
+• Barometric pressure
 • Second time zone: London, New York, Tokyo, Sydney, Singapore, Kuala Lumpur, Kolkata, Dubai or UTC, with daylight saving applied. You can also set a custom UTC offset with an optional 3-letter label.
 
 CORNER BARS
-Four bars run along the dial edge. Each one shows Steps, Body Battery, Move alert or Recovery, or can be turned off. The fill always tracks the real value.
+Four bars run along the dial edge. Each one shows Steps, Body Battery, Move alert, Recovery, Stress or Floors climbed, or can be turned off. The fill always tracks the real value.
 • Move alert reads ACTIVE when you've moved recently, loses a segment for each step of idleness, and refills when you walk it off.
 • Recovery fills as your recovery time runs down, and shows RECHARGED at zero.
+• Stress fills as you calm down and turns orange when stress is high. It is also available as a gauge.
 
 TIME STYLE
 • Analog: hands only.

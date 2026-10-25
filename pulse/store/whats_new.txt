@@ -1,6 +1,4 @@
-• Now supports Forerunner 970, fēnix 8 and fēnix 9 AMOLED models, with the layout scaling to each screen size.
-• New corner bars along the dial edge: Steps, Body Battery, Move alert and Recovery, with a real fill that tracks the value.
-• New Hybrid time style with stacked hour, minute and second digits, plus a 12/24 hour option.
-• Gauges now offer Heart rate, Resting HR, Weather, Watch battery, Date, Calories, Distance, Sunrise, Stress and Second time zone. Steps, Body Battery, Move alert and Recovery moved to the corner bars.
-• Removed the chapter ring (compass, numerals) in favour of the corner bars and minute ticks.
-• Move alert is now a corner bar that refills when you walk it off; Recovery fills against its peak.
+• Bigger gauges with larger text, so readings are easier to see at a glance.
+• Sunrise is now Sunrise / Sunset and shows whichever sun event is next.
+• Stress and Floors climbed can now sit on the corner bars; Stress stays available as a gauge.
+• New gauges: Pulse Ox, Respiration, High / low temperature, Weekly bike distance, Weekly run distance, Altitude and Barometric pressure.
