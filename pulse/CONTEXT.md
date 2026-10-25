@@ -7,7 +7,7 @@ An analog watch face for the Garmin FR965. User-chosen data stays readable by mo
 ### Layout
 
 **Field**:
-One user-chosen metric shown on the dial, such as heart rate or steps. There are exactly four.
+One user-chosen metric shown in a gauge, such as heart rate or the date. There are four, or three in Hybrid.
 _Avoid_: Complication, widget, metric slot
 
 **Slot**:
@@ -35,21 +35,41 @@ The circle that shows one field's icon and value.
 _Avoid_: Badge, bubble, circle
 
 **Progress arc**:
-The part of a gauge's ring that fills to show a reading against its natural range. Only fields with such a range have one. Fields without one show a plain ring.
+The thin ring on a gauge's rim that fills to show a reading against its natural range. Only fields with such a range have one.
 _Avoid_: Ring fill, meter
 
-**Chapter ring**:
-The ring of markings around the dial edge. Its style is compass, hour numerals or ticks only.
-_Avoid_: Bezel, scale, compass ring
+**Corner bar**:
+A segmented bar along the dial edge in one of four corners, showing one bar metric or turned off. Its fill always tracks the real value. Minute ticks show only where no corner bar is drawn.
+_Avoid_: Arc gauge, bezel, side field
 
-**Compass style**:
-The chapter ring style with decorative N/E/S/W and degree labels. It doesn't measure heading.
-_Avoid_: Compass, bezel
+**Bar metric**:
+What a corner bar shows: Steps, Body Battery, Move alert or Recovery. A bar metric is never a field, so it never relocates or hides behind the hands. Each one appears on at most one corner.
+_Avoid_: Field, side field
+
+**Move alert**:
+The bar metric for Garmin's inactivity warning. It reads full when the wearer has moved recently ("ACTIVE"), loses a segment for each step of idleness ("MOVE!"), and refills at once when the wearer walks it off ("RESET", held a few minutes). While the alert is up and the wearer is walking, it shows "KEEP GOING".
+_Avoid_: Move bar (Garmin's name), inactivity, idle alert
+
+**Recovery peak**:
+The highest recovery time seen since recovery last reached zero. The Recovery bar shows how much of the peak has been worked off.
+_Avoid_: Max recovery, baseline
+
+**Recharged**:
+The state of the Recovery bar at zero hours of recovery: full, with the peak cleared.
+_Avoid_: Recovered, ready
 
 ### Modes
 
+**Time style**:
+How the time is shown in active mode: Analog (hands only) or Hybrid.
+_Avoid_: Layout, mode
+
+**Hybrid**:
+The time style with stacked hour, minute and second digits right of centre, under the hands. It shows three fields, and none sits on the right side.
+_Avoid_: Digital, dual
+
 **Active mode**:
-The full face: dial markings, fields, all three hands.
+The full face: ticks, corner bars, fields, all three hands, and the digits in Hybrid.
 _Avoid_: Normal mode, high-power mode
 
 **Always-on mode**:
@@ -59,7 +79,7 @@ _Avoid_: AOD (in prose), sleep mode, ambient
 ### Data
 
 **Unavailable**:
-The state of a field whose reading is missing. It shows `--` and keeps its icon and slot.
+The state of a field or bar metric whose reading is missing. It shows `--`; a field keeps its icon and slot, and a corner bar keeps its place with every segment dim.
 _Avoid_: Empty, error, no data
 
 **Second zone**:

@@ -1,16 +1,19 @@
+import Toybox.Application;
 import Toybox.Lang;
 import Toybox.Test;
+import Toybox.Time;
 
-// Sweeps two full 12-hour cycles and checks ADR 0002 plus hand clearance.
-(:test)
-function layoutSweep(logger as Logger) as Boolean {
-    var fields = [5, 6, 0, 7], last = [0, 2, 4, 6];
+// Sweeps two full 12-hour cycles and checks ADR 0002 plus hand clearance and closed slots.
+function sweep(fields as Array<Number>, closed as Array<Boolean>) as Void {
+    var last = [0, 2, 4, 6];
     for (var t = 0; t < 1440; t++) {
         var m = t % 720, now = Layout.blockedAt(m), next = Layout.blockedAt(m + 1);
-        var out = Layout.assign(m, fields, last), cs = Layout.fit(out, m);
+        var out = Layout.assign(m, fields, last, closed), cs = Layout.fit(out, m);
         for (var i = 0; i < 4; i++) {
             var s = out[i], was = last[i], home = Layout.HOMES[i];
+            if (fields[i] < 0) { Test.assertEqual(s, -1); }
             if (s < 0) { continue; }
+            Test.assertMessage(!closed[s], "gauge in a closed slot at " + m);
             var c = cs[i] as Array<Float>;
             Test.assertMessage(Layout.clearance(c[0], c[1], m) >= c[2] + 16, "gauge under a hand at " + m);
             if (s == was) { continue; }
@@ -23,6 +26,36 @@ function layoutSweep(logger as Logger) as Boolean {
         }
         last = out;
     }
-    Test.assertEqual(Layout.assign(0, [5, 5, 0, 7], [0, 2, 4, 6])[1], -1);
+}
+
+(:test)
+function layoutSweep(logger as Logger) as Boolean {
+    var open = [false, false, false, false, false, false, false, false];
+    sweep([7, 5, 4, 0], open);
+    Test.assertEqual(Layout.assign(0, [5, 5, 0, 7], [0, 2, 4, 6], open)[1], -1);
+    return true;
+}
+
+// Hybrid: the right gauge is dropped and slots 1-3 (the digits) are never used.
+(:test)
+function hybridSweep(logger as Logger) as Boolean {
+    sweep([7, -1, 4, 0], [false, true, true, true, false, false, false, false]);
+    return true;
+}
+
+// ADR 0005 recovery peak: top-up below the peak loses ground, above it resets, 0 h clears.
+(:test)
+function recoveryPeak(logger as Logger) as Boolean {
+    Application.Storage.deleteValue("recoveryPeak");
+    Test.assertEqual(Fields.recovered(18), 0.0);
+    Test.assertEqual(Fields.recovered(9), 0.5);
+    Test.assertEqual(Fields.recovered(12), 1 - 12 / 18.0);
+    Test.assertEqual(Fields.recovered(30), 0.0);
+    Test.assertEqual(Fields.recovered(0), 1.0);
+    Test.assertEqual(Fields.recovered(10), 0.0);
+    // A peak that ran out while another face was showing is replaced.
+    Application.Storage.setValue("recoveryPeak", [40, Time.now().value() - 41 * 3600]);
+    Test.assertEqual(Fields.recovered(18), 0.0);
+    Application.Storage.deleteValue("recoveryPeak");
     return true;
 }

@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 An analog watch face for the Garmin Forerunner 965 (FR965), called "Panther / Expanding circles" (a purple Black Panther colour study). It has two parts: a design prototype in one self-contained file, `crossover_965_bast_pulse.html` (inline CSS, inline SVG, vanilla JS, no dependencies or build step), and the Connect IQ app in `ciq/`.
 
-The Connect IQ build for FR965 lives in `ciq/` (Monkey C). It implements the decisions recorded in `CONTEXT.md` and `docs/adr/`; the HTML stays as the design prototype and is not kept in sync. Build from the repo root (see the README): `monkeyc -d fr965 -f pulse/ciq/monkey.jungle -o pulse/ciq/bin/pulse.prg -y "$GARMIN_DEVELOPER_KEY" -w -l 3`. Keep `-l 3` (strict typing) clean. Layout test: add `-t`, then `monkeydo <prg> fr965 -t` with the simulator open.
+The Connect IQ build for FR965 lives in `ciq/` (Monkey C). It implements the decisions recorded in `CONTEXT.md` and `docs/adr/`; the HTML stays as the design prototype and is not kept in sync. The HTML predates the Chronos-style redesign (corner bars, Hybrid time style; ADR 0005), so it still shows the old chapter ring and four field types that are now bar-only. Build from the repo root (see the README): `monkeyc -d fr965 -f pulse/ciq/monkey.jungle -o pulse/ciq/bin/pulse.prg -y "$GARMIN_DEVELOPER_KEY" -w -l 3`. Keep `-l 3` (strict typing) clean. Layout test: add `-t`, then `monkeydo <prg> fr965 -t` with the simulator open.
 
 Run the prototype by opening the file in a browser. To check a change, drag the time slider through the full 12 hours, toggle Active/AOD, and turn "adaptive" on and off.
 

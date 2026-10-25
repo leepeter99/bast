@@ -7,6 +7,7 @@ import Toybox.Time.Gregorian;
 import Toybox.ActivityMonitor;
 import Toybox.UserProfile;
 import Toybox.Complications;
+import Toybox.Weather;
 import Toybox.Position;
 import Toybox.WatchUi;
 
@@ -15,6 +16,12 @@ import Toybox.WatchUi;
 module Fields {
     enum { HEART, RESTING, RECOVERY, BODY, WEATHER, BATTERY, STEPS, DATE, CALORIES, DISTANCE, SUNRISE, STRESS, ZONE, MOVE }
     const COUNT = 14;
+    // Gauge defaults per position (top, right, bottom, left).
+    const DEFAULTS = [DATE, BATTERY, WEATHER, HEART];
+    // Corner bar options: Off, Steps, Body Battery, Move, Recovery (ADR 0005).
+    const BAR_IDS = [-1, STEPS, BODY, MOVE, RECOVERY];
+    // Upper left, upper right, lower left, lower right.
+    const BAR_DEFAULTS = [1, 3, 2, 4];
 
     // ADR 0004: code, latitude, longitude. UTC has no location.
     const CITIES = [
@@ -26,6 +33,45 @@ module Fields {
     // v if it is a Number in [0, n), else dflt. Settings come from the phone and may be stale.
     function index(v as Object?, n as Number, dflt as Number) as Number {
         return v instanceof Number && v >= 0 && v < n ? v : dflt;
+    }
+
+    // Metrics shown only on the corner bars, never as a gauge.
+    function fixed(id as Number) as Boolean {
+        return id == STEPS || id == BODY || id == MOVE || id == RECOVERY;
+    }
+
+    // The gauge at position i, falling back to its default for stale or bar-only values.
+    function field(i as Number) as Number {
+        var v = index(Application.Properties.getValue("field" + i), COUNT, DEFAULTS[i]);
+        return fixed(v) ? DEFAULTS[i] : v;
+    }
+
+    // Bar option per corner. A metric already on an earlier corner (UL, UR, LL, LR) turns the later one Off.
+    function bars() as Array<Number> {
+        var out = [0, 0, 0, 0];
+        for (var k = 0; k < 4; k++) {
+            out[k] = index(Application.Properties.getValue("bar" + k), BAR_IDS.size(), BAR_DEFAULTS[k]);
+            for (var j = 0; j < k; j++) {
+                if (out[j] == out[k]) { out[k] = 0; }
+            }
+        }
+        return out;
+    }
+
+    // Share of the recovery peak worked off, 1.0 = recharged (ADR 0005). The peak is stored as
+    // [hours, set at]; one that has run out since it was set, or is below the reading, is replaced.
+    function recovered(h as Number) as Float {
+        var now = Time.now().value(), saved = Application.Storage.getValue("recoveryPeak") as Array<Number>?;
+        if (h <= 0) {
+            if (saved != null) { Application.Storage.deleteValue("recoveryPeak"); }
+            return 1.0;
+        }
+        var peak = saved == null || saved[0] < h || saved[1] + saved[0] * 3600 < now ? null : saved[0];
+        if (peak == null) {
+            peak = h;
+            Application.Storage.setValue("recoveryPeak", [h, now]);
+        }
+        return 1 - h.toFloat() / peak;
     }
 
     function str(id as ResourceId) as String { return WatchUi.loadResource(id) as String; }
@@ -46,9 +92,19 @@ module Fields {
         }
     }
 
-    function hhmm(h as Number, m as Number) as String {
-        if (!System.getDeviceSettings().is24Hour) { h = h % 12 == 0 ? 12 : h % 12; }
-        return h.format("%02d") + ":" + m.format("%02d");
+    function hour(h as Number) as String {
+        // hourFormat: 0 = watch setting, 1 = 12 h, 2 = 24 h.
+        var f = index(Application.Properties.getValue("hourFormat"), 3, 0);
+        if (f == 1 || f == 0 && !System.getDeviceSettings().is24Hour) { h = h % 12 == 0 ? 12 : h % 12; }
+        return h.format("%02d");
+    }
+
+    function hhmm(h as Number, m as Number) as String { return hour(h) + ":" + m.format("%02d"); }
+
+    // Celsius in, device units out, as "NN°".
+    function temp(c as Numeric) as String {
+        if (System.getDeviceSettings().temperatureUnits == System.UNIT_STATUTE) { c = c * 9 / 5.0 + 32; }
+        return Math.round(c).toNumber() + "°";
     }
 
     function read(id as Number) as Array {
@@ -62,16 +118,21 @@ module Fields {
         } else if (id == RECOVERY) {
             // The complication reports minutes; show whole hours, rounded up.
             var v = complication(Complications.COMPLICATION_TYPE_RECOVERY_TIME);
-            return v == null ? none : [(v.toNumber() + 59) / 60 + "h", null, null];
+            if (v == null) { return none; }
+            var h = (v.toNumber() + 59) / 60;
+            return [h + "h", recovered(h), null];
         } else if (id == BODY || id == STRESS) {
             var v = complication(id == BODY ? Complications.COMPLICATION_TYPE_BODY_BATTERY : Complications.COMPLICATION_TYPE_STRESS);
             return v == null ? none : [v.toNumber().toString(), v / 100.0, null];
         } else if (id == WEATHER) {
             var v = complication(Complications.COMPLICATION_TYPE_CURRENT_TEMPERATURE);
             if (v == null) { return none; }
-            // The complication is always Celsius.
-            if (System.getDeviceSettings().temperatureUnits == System.UNIT_STATUTE) { v = v * 9 / 5.0 + 32; }
-            return [Math.round(v).toNumber() + "°", null, null];
+            // The complication is always Celsius; low|high comes from Weather, which may be null.
+            var cc = Weather.getCurrentConditions(), cap = null;
+            if (cc != null && cc.lowTemperature != null && cc.highTemperature != null) {
+                cap = temp(cc.lowTemperature as Numeric) + "|" + temp(cc.highTemperature as Numeric);
+            }
+            return [temp(v), null, cap];
         } else if (id == BATTERY) {
             var b = System.getSystemStats().battery;
             return [Math.round(b).toNumber() + "%", b / 100.0, null];
@@ -79,10 +140,11 @@ module Fields {
             var info = ActivityMonitor.getInfo(), s = info.steps, g = info.stepGoal;
             if (s == null) { return none; }
             var p = g == null || g <= 0 ? null : (s >= g ? 1.0 : s.toFloat() / g);
-            return [s >= 1000 ? (s / 1000.0).format("%.1f") + str(Rez.Strings.Thousands) : s.toString(), p, null];
+            return [s >= 1000 ? (s / 1000.0).format("%.1f") + str(Rez.Strings.Thousands) : s.toString(), p, null, s];
         } else if (id == DATE) {
-            var d = Gregorian.info(Time.now(), Time.FORMAT_MEDIUM);
-            return [d.day_of_week + " " + d.day, null, null];
+            // [day, null, month, weekday 1 = Sunday] for the weekday ring.
+            var now = Time.now(), d = Gregorian.info(now, Time.FORMAT_MEDIUM);
+            return [d.day.format("%02d"), null, (d.month as String).toUpper(), Gregorian.info(now, Time.FORMAT_SHORT).day_of_week];
         } else if (id == CALORIES) {
             var c = ActivityMonitor.getInfo().calories;
             return c == null ? none : [c.toString(), null, null];
@@ -98,10 +160,10 @@ module Fields {
             var t = v.toNumber();
             return [hhmm(t / 3600 % 24, t / 60 % 60), null, null];
         } else if (id == MOVE) {
-            // Move bar: 0 = active, 1+ = alert (first segment after 1 h idle), 5 = full.
+            // Move bar: 0 = active, 1+ = alert (first segment after 1 h idle), 5 = full. The view tracks resets.
             var v = ActivityMonitor.getInfo().moveBarLevel;
             if (v == null) { return none; }
-            return [str(v > ActivityMonitor.MOVE_BAR_LEVEL_MIN ? Rez.Strings.Move : Rez.Strings.Ok), v.toFloat() / ActivityMonitor.MOVE_BAR_LEVEL_MAX, null];
+            return [v.toString(), v.toFloat() / ActivityMonitor.MOVE_BAR_LEVEL_MAX, null];
         }
         return zone();
     }

@@ -6,7 +6,7 @@ import Toybox.Math;
 module Layout {
     const CX = 227.0;
     const RING = 133.0;
-    const EDGE = 180.0;
+    const EDGE = 186.0;     // just inside the corner-bar labels (ADR 0005)
     const HOUR_LEN = 117.0;
     const MIN_LEN = 170.0;
     const BLOCK = 60.0;      // = start radius 44 + hand clearance 16
@@ -55,13 +55,15 @@ module Layout {
         return d < 8 - d ? d : 8 - d;
     }
 
-    // Slot per field (-1 = hidden or duplicate). `last` is the previous result.
-    // Priority is field order: top, right, bottom, left.
-    function assign(m as Number, fields as Array<Number>, last as Array<Number>) as Array<Number> {
+    // Slot per field (-1 = hidden, duplicate or field < 0). `last` is the previous result.
+    // Priority is field order: top, right, bottom, left. `closed` slots are never used (Hybrid digits).
+    function assign(m as Number, fields as Array<Number>, last as Array<Number>, closed as Array<Boolean>) as Array<Number> {
         var now = blockedAt(m), next = blockedAt(m + 1);
+        for (var s = 0; s < 8; s++) { now[s] = now[s] || closed[s]; next[s] = next[s] || closed[s]; }
         var used = new Array<Boolean>[8], out = [-1, -1, -1, -1], skip = [false, false, false, false];
         for (var s = 0; s < 8; s++) { used[s] = false; }
-        for (var i = 1; i < 4; i++) {
+        for (var i = 0; i < 4; i++) {
+            skip[i] = fields[i] < 0;
             for (var j = 0; j < i; j++) {
                 if (fields[i] == fields[j]) { skip[i] = true; }
             }
@@ -97,7 +99,7 @@ module Layout {
         for (var i = 0; i < slots.size(); i++) {
             if (slots[i] >= 0) { var p = slotXY(slots[i]); cs[i] = [p[0], p[1], 44.0]; }
         }
-        for (var step = 0; step < 10; step++) {
+        for (var step = 0; step < 20; step++) {
             for (var i = 0; i < cs.size(); i++) {
                 if (cs[i] == null) { continue; }
                 var base = slotXY(slots[i]), r = (cs[i] as Array<Float>)[2] + 1;
