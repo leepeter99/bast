@@ -51,7 +51,7 @@ What a corner bar shows: Steps, Body Battery, Move alert, Recovery, Stress or Fl
 _Avoid_: Field, side field
 
 **Move alert**:
-The bar metric for Garmin's inactivity warning. It reads as vibranium charge: full and purple, labelled "CHARGED" in white, when the wearer has moved recently, losing a segment and dimming for each step of idleness ("MOVE!"), drained to empty magenta-outlined cells at the last step, and refilling at once, glowing white for a few minutes, when the wearer walks it off. While the alert is up, its words turn magenta: "MOVE!", or "KEEP GOING" while the wearer is walking.
+The bar metric for Garmin's inactivity warning. It reads as vibranium charge: full and purple, labelled "CHARGED" in white, when the wearer has moved recently, losing a segment and dimming for each step of idleness ("MOVE!"), drained to empty violet-outlined cells at the last step, and refilling at once, glowing white for a few minutes, when the wearer walks it off. While the alert is up, its words turn electric violet: "MOVE!", or "KEEP GOING" while the wearer is walking.
 _Avoid_: Move bar (Garmin's name), inactivity, idle alert
 
 **Recovery peak**:
