@@ -24,9 +24,11 @@ class PantherView extends WatchUi.WatchFace {
     var LABEL_R as Float = 193.0;
     const TRACK = 0x221a4a;
     // Move alert as vibranium charge by level 0-5: purple when charged, dimmer per idle level, then drained:
-    // five empty cells outlined in electric violet, the alarm colour. GLOW is the white of a fresh recharge and of absorbed energy.
+    // five empty cells outlined in electric violet, the alarm colour. GLOW is the hands' lilac: a fresh recharge and absorbed energy.
+    // ALERT is that lilac's hue, dimmed for the alert words so they don't outshine the face.
     const CHARGE = [0x9d7bff, 0x8c68f5, 0x7a55e8, 0x6845d8, 0x5a38c8, 0xc44dff];
     const GLOW = 0xe9e3ff;
+    const ALERT = 0x9585e6;
     const SHIFTS = [[0, 0], [2, 0], [2, 2], [0, 2]];
     // Hand outlines from the prototype SVG, relative to the centre, pointing at 12.
     const HOUR = [[-9, 6], [-10, -94], [0, -115], [10, -94], [9, 6]];
@@ -236,13 +238,13 @@ class PantherView extends WatchUi.WatchFace {
                     var fresh = Time.now().value() < resetUntil;
                     lit = n;
                     col = fresh ? GLOW : CHARGE[0];
-                    // White CHARGED like the other bars' labels; words and mask turn electric violet only during an alert.
+                    // White CHARGED like the other bars' labels; during an alert the words take a dimmed hand lilac.
                     num = Fields.str(Rez.Strings.Active);
                 } else {
                     var lv = moveLevel < n ? moveLevel : n;
                     lit = n - lv;
                     col = CHARGE[lv] as Number;
-                    textCol = CHARGE[CHARGE.size() - 1] as Number;
+                    textCol = ALERT;
                     hollow = lit == 0;
                     num = Fields.str(walking ? Rez.Strings.KeepGoing : Rez.Strings.MoveAlert) + " " + moveLevel + "/5";
                     // Walking it off: absorbed energy runs along the empty segments, one per second in high-power mode.
@@ -263,8 +265,8 @@ class PantherView extends WatchUi.WatchFace {
             var mid = (SPANS[k][0] + SPANS[k][1]) / 2.0, dir = TOP[k] ? 1 : -1, deg = 180 / Math.PI / LABEL_R;
             var iw = 24 * S, tw = num.length() * 12 * S, gap = num.length() > 0 ? 6 * S : 0, w = iw + gap + tw;
             var ia = mid + dir * (iw - w) / 2 * deg, ta = mid + dir * (iw + gap + tw / 2 - w / 2) * deg, a = ia * Math.PI / 180;
-            // The icon takes the accent, unless the label carries an alert colour.
-            drawIcon(dc, id, CX + Math.sin(a) * LABEL_R, CX - Math.cos(a) * LABEL_R, 1.4 * S, TOP[k] ? ia : ia + 180, textCol == 0xf5f6f7 ? accent() : textCol, Graphics.COLOR_BLACK);
+            // Icons always take the accent; only the words carry an alert colour.
+            drawIcon(dc, id, CX + Math.sin(a) * LABEL_R, CX - Math.cos(a) * LABEL_R, 1.4 * S, TOP[k] ? ia : ia + 180, accent(), Graphics.COLOR_BLACK);
             if (f == null || num.length() == 0) { continue; }
             dc.setColor(textCol, Graphics.COLOR_TRANSPARENT);
             dc.drawRadialText(CX, CX, f, num, Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER,
