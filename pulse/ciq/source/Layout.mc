@@ -2,11 +2,11 @@ import Toybox.Lang;
 import Toybox.Math;
 
 // Port of the prototype's layout engine (crossover_965_bast_pulse.html:32-41) plus ADR 0002.
-// Three fields on a six-slot ring (ADR 0006). All geometry is in 454x454 screen pixels,
+// Three fields on a twelve-slot ring (ADR 0009). All geometry is in 454x454 screen pixels,
 // angles in degrees clockwise from 12.
 module Layout {
-    const HOMES = [0, 2, 4];
-    const N = 6;
+    const HOMES = [0, 4, 8];
+    const N = 12;
     // Design values at 454 px, rescaled by setup() to the real screen width.
     var S as Float = 1.0;
     var CX as Float = 227.0;
@@ -15,7 +15,7 @@ module Layout {
     var HOUR_LEN as Float = 117.0;
     var MIN_LEN as Float = 170.0;
     var BLOCK as Float = 65.0;      // = start radius 53 + hand clearance 12
-    var R0 as Float = 53.0;      // adjacent slots are 133 apart; RING + R0 = EDGE exactly
+    var R0 as Float = 53.0;      // gauges sit two slots (133 px) apart or more; RING + R0 = EDGE exactly
     var PAD as Float = 12.0;
     var GAP as Float = 7.0;
 
@@ -26,7 +26,7 @@ module Layout {
     }
 
     function slotXY(s as Number) as Array<Float> {
-        var a = s * Math.PI / 3;
+        var a = s * Math.PI / 6;
         return [CX + Math.sin(a) * RING, CX - Math.cos(a) * RING] as Array<Float>;
     }
 
@@ -68,6 +68,11 @@ module Layout {
         return d < N - d ? d : N - d;
     }
 
+    // Marks s and both neighbours used: gauges one slot apart would overlap.
+    function take(used as Array<Boolean>, s as Number) as Void {
+        used[s] = true; used[(s + 1) % N] = true; used[(s + N - 1) % N] = true;
+    }
+
     // Slot per field (-1 = hidden, duplicate or field < 0). `last` is the previous result.
     // Priority is field order: top, lower right, lower left.
     function assign(m as Number, fields as Array<Number>, last as Array<Number>) as Array<Number> {
@@ -83,29 +88,36 @@ module Layout {
         // 1. Home, if clear now and next minute.
         for (var i = 0; i < 3; i++) {
             var h = HOMES[i];
-            if (!skip[i] && !now[h] && !next[h] && !used[h]) { out[i] = h; used[h] = true; }
+            if (!skip[i] && !now[h] && !next[h] && !used[h]) { out[i] = h; take(used, h); }
         }
         // 2. Keep the current relocation slot until it is blocked.
         for (var i = 0; i < 3; i++) {
             var s = last[i];
-            if (!skip[i] && out[i] < 0 && s >= 0 && s != HOMES[i] && !now[s] && !used[s]) { out[i] = s; used[s] = true; }
+            if (!skip[i] && out[i] < 0 && s >= 0 && s < N && s != HOMES[i] && !now[s] && !used[s]) { out[i] = s; take(used, s); }
         }
-        // 3. Nearest slot that is clear now and next minute, or hide.
+        // 3. The slot clear now and next minute where the gauges placed so far grow largest in total, or hide. Slots are tried
+        // nearest home first, and a farther one wins only by more than 3 px, so a move is worth the jump.
         for (var i = 0; i < 3; i++) {
             if (skip[i] || out[i] >= 0) { continue; }
-            var best = -1, bd = N + 1;
-            for (var s = 0; s < N; s++) {
-                if (used[s] || now[s] || next[s]) { continue; }
-                var d = circularDistance(s, HOMES[i]);
-                if (d < bd) { bd = d; best = s; }
+            var best = -1, br = 0.0;
+            for (var d = 0; d <= N / 2; d++) {
+                for (var sign = -1; sign <= 1; sign += 2) {
+                    var s = (HOMES[i] + sign * d + N) % N;
+                    if (used[s] || now[s] || next[s] || d == 0 && sign > 0 || d == N / 2 && sign > 0) { continue; }
+                    out[i] = s;
+                    var r = 0.0;
+                    for (var j = 0; j < 3; j++) { if (out[j] >= 0) { r += grow(out, j, m); } }
+                    if (best < 0 || r > br + 3 * S) { best = s; br = r; }
+                }
             }
-            if (best >= 0) { out[i] = best; used[best] = true; }
+            out[i] = best;
+            if (best >= 0) { take(used, best); }
         }
         return out;
     }
 
     // Grow each gauge from r 53 toward the centre (prototype fitCircles), one pixel per pass, until it
-    // meets the edge, a hand or a neighbour. Two gauges in adjacent slots stay at 53; others grow to ~80.
+    // meets the edge, a hand or a neighbour. Two gauges two slots apart stay at 53; others grow to ~80.
     // Returns [x, y, r] per field, or null when hidden.
     function fit(slots as Array<Number>, m as Number) as Array {
         var cs = place(slots, R0);
@@ -125,6 +137,22 @@ module Layout {
             }
         }
         return cs;
+    }
+
+    // Largest radius for field i with the other gauges held at R0, by binary search: a cheap stand-in for
+    // fit() when comparing slots, as running fit() per candidate trips the watchdog on device.
+    function grow(slots as Array<Number>, i as Number, m as Number) as Float {
+        var cs = place(slots, R0), p = cs[i] as Array<Float>, lo = R0, hi = R0 + 40 * S;
+        for (var k = 0; k < 6; k++) {
+            var r = (lo + hi) / 2, f = (RING - (r - R0)) / RING, x = CX + (p[0] - CX) * f, y = CX + (p[1] - CX) * f;
+            var ok = clearance(x, y, m) >= r + PAD;
+            for (var j = 0; ok && j < cs.size(); j++) {
+                var q = cs[j] as Array<Float>?;
+                if (q != null && j != i && Math.sqrt((x - q[0]) * (x - q[0]) + (y - q[1]) * (y - q[1])) < r + q[2] + GAP) { ok = false; }
+            }
+            if (ok) { lo = r; } else { hi = r; }
+        }
+        return lo;
     }
 
     // Gauges of radius r, pulled toward the centre one pixel per pixel of growth past R0.

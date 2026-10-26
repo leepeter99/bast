@@ -23,8 +23,10 @@ class PantherView extends WatchUi.WatchFace {
     var BAR_R as Float = 214.0;
     var LABEL_R as Float = 193.0;
     const TRACK = 0x221a4a;
-    // Move alert as vibranium charge by level 0-5: near white when charged, dimmer per idle level, magenta when drained.
-    const CHARGE = [0xe9e3ff, 0xbca8ff, 0x9d7bff, 0x7a55f0, 0x5f3cd6, 0xff4fd8];
+    // Move alert as vibranium charge by level 0-5: purple when charged, dimmer per idle level, then drained:
+    // five empty cells outlined in magenta. GLOW is the white of a fresh recharge and of absorbed energy.
+    const CHARGE = [0x9d7bff, 0x8c68f5, 0x7a55e8, 0x6845d8, 0x5a38c8, 0xff4fd8];
+    const GLOW = 0xe9e3ff;
     const SHIFTS = [[0, 0], [2, 0], [2, 2], [0, 2]];
     // Hand outlines from the prototype SVG, relative to the centre, pointing at 12.
     const HOUR = [[-9, 6], [-10, -94], [0, -115], [10, -94], [9, 6]];
@@ -37,8 +39,8 @@ class PantherView extends WatchUi.WatchFace {
     var bars as Array<Number> = [1, 3, 2, 4];
     var barValues as Array = [null, null, null, null];
     var accentIdx as Number = 0;
-    var last as Array<Number> = [0, 2, 4];
-    var slots as Array<Number> = [0, 2, 4];
+    var last as Array<Number> = [0, 4, 8];
+    var slots as Array<Number> = [0, 4, 8];
     var circles as Array = [];
     var values as Array = [null, null, null];
     var cachedMin as Number = -1;
@@ -63,7 +65,7 @@ class PantherView extends WatchUi.WatchFace {
         for (var i = 0; i < 3; i++) { fields[i] = Fields.field(i); }
         bars = Fields.bars();
         accentIdx = Fields.index(Application.Properties.getValue("accent"), ACCENTS.size(), 0);
-        last = [0, 2, 4];
+        last = [0, 4, 8];
         cachedMin = -1;
         edgeRef = null;
     }
@@ -182,6 +184,15 @@ class PantherView extends WatchUi.WatchFace {
         dc.drawArc(CX, CX, BAR_R, Graphics.ARC_CLOCKWISE, (450 - a - idx * w - 1) % 360, (450 - a - (idx + 1) * w + 1) % 360);
     }
 
+    // An empty cell: the segment in col with a black centre, leaving a rim about 3 px wide.
+    function drawHollow(dc as Dc, k as Number, j as Number, n as Number, col as Number) as Void {
+        var a = SPANS[k][0], w = (SPANS[k][1] - a) / n, idx = FROM_START[k] ? j : n - 1 - j;
+        drawSegment(dc, k, j, n, col);
+        dc.setPenWidth((10 * S).toNumber());
+        dc.setColor(Graphics.COLOR_BLACK, Graphics.COLOR_TRANSPARENT);
+        dc.drawArc(CX, CX, BAR_R, Graphics.ARC_CLOCKWISE, (450 - a - idx * w - 2) % 360, (450 - a - (idx + 1) * w + 2) % 360);
+    }
+
     // Garmin exposes only the level, never its reset rule. Walking = enough steps in the last minute
     // while the alert is up; a drop to 0 shows RESET for a few minutes.
     function trackMove() as Void {
@@ -199,7 +210,7 @@ class PantherView extends WatchUi.WatchFace {
         for (var k = 0; k < 4; k++) {
             var d = barValues[k] as Array?;
             if (bars[k] == 0 || d == null) { continue; }
-            var id = Fields.BAR_IDS[bars[k]] as Number, n = segments(k), p = d[1] as Float?, col = accent(), textCol = 0xf5f6f7, label = "", pulse = -1;
+            var id = Fields.BAR_IDS[bars[k]] as Number, n = segments(k), p = d[1] as Float?, col = accent(), textCol = 0xf5f6f7, label = "", pulse = -1, hollow = false;
             var lit = p == null ? 0 : (p * n).toNumber();
             if (id == Fields.STEPS) {
                 label = Fields.str(Rez.Strings.LSteps) + " " + d[(d.size() > 3 ? 3 : 0)];
@@ -215,13 +226,16 @@ class PantherView extends WatchUi.WatchFace {
             } else if (id == Fields.MOVE) {
                 if (moveLevel < 0) { lit = 0; label = Fields.str(Rez.Strings.LMove) + " --"; }
                 else if (moveLevel == 0) {
+                    var fresh = Time.now().value() < resetUntil;
                     lit = n;
-                    col = CHARGE[0];
-                    label = Fields.str(Time.now().value() < resetUntil ? Rez.Strings.Reset : Rez.Strings.Active);
+                    col = fresh ? GLOW : CHARGE[0];
+                    label = Fields.str(fresh ? Rez.Strings.Reset : Rez.Strings.Active);
                 } else {
-                    lit = n - moveLevel < 1 ? 1 : n - moveLevel;
-                    col = CHARGE[moveLevel < CHARGE.size() ? moveLevel : CHARGE.size() - 1] as Number;
+                    var lv = moveLevel < n ? moveLevel : n;
+                    lit = n - lv;
+                    col = CHARGE[lv] as Number;
                     textCol = col;
+                    hollow = lit == 0;
                     label = Fields.str(walking ? Rez.Strings.KeepGoing : Rez.Strings.MoveAlert) + " " + moveLevel + "/5";
                     // Walking it off: absorbed energy runs along the empty segments, one per second in high-power mode.
                     if (walking) { pulse = lit + sec % (n - lit); }
@@ -233,7 +247,8 @@ class PantherView extends WatchUi.WatchFace {
                 label = Fields.str(Rez.Strings.LRecovery) + " " + d[0];
             }
             for (var j = 0; j < lit && j < n; j++) { drawSegment(dc, k, j, n, col); }
-            if (pulse >= 0) { drawSegment(dc, k, pulse, n, CHARGE[0]); }
+            for (var j = 0; hollow && j < n; j++) { drawHollow(dc, k, j, n, col); }
+            if (pulse >= 0) { drawSegment(dc, k, pulse, n, GLOW); }
             if (f == null) { continue; }
             dc.setColor(textCol, Graphics.COLOR_TRANSPARENT);
             dc.drawRadialText(CX, CX, f, label as String, Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER,

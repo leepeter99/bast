@@ -11,7 +11,7 @@ One user-chosen metric shown in a gauge, such as heart rate or the date. There a
 _Avoid_: Complication, widget, metric slot
 
 **Slot**:
-One of six fixed positions evenly spaced on a ring around the dial centre where a field can sit.
+One of twelve fixed positions evenly spaced on a ring around the dial centre, like the hours, where a field can sit. Two fields are always at least two slots apart.
 _Avoid_: Position, spot
 
 **Home slot**:
@@ -23,7 +23,7 @@ Describes a slot that the hour or minute hand passes too close to for a field to
 _Avoid_: Obstructed, covered, unsafe
 
 **Relocation**:
-A field moving from its home slot to another slot because its home slot is blocked.
+A field moving from its home slot to another slot because its home slot is blocked. It goes to the free slot where the gauges end up largest, not simply the nearest one.
 _Avoid_: Reflow, rearrangement
 
 **Hidden field**:
@@ -51,7 +51,7 @@ What a corner bar shows: Steps, Body Battery, Move alert, Recovery, Stress or Fl
 _Avoid_: Field, side field
 
 **Move alert**:
-The bar metric for Garmin's inactivity warning. It reads as vibranium charge: full and near white when the wearer has moved recently ("CHARGED"), losing a segment and dimming for each step of idleness ("MOVE!", magenta at the last step), and refilling at once when the wearer walks it off ("RECHARGED", held a few minutes). While the alert is up and the wearer is walking, it shows "KEEP GOING".
+The bar metric for Garmin's inactivity warning. It reads as vibranium charge: full and purple when the wearer has moved recently ("CHARGED"), losing a segment and dimming for each step of idleness ("MOVE!"), drained to empty magenta-outlined cells at the last step, and refilling white at once when the wearer walks it off ("RECHARGED", held a few minutes). While the alert is up and the wearer is walking, it shows "KEEP GOING".
 _Avoid_: Move bar (Garmin's name), inactivity, idle alert
 
 **Recovery peak**:
