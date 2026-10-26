@@ -11,7 +11,7 @@ import Toybox.WatchUi;
 class PantherView extends WatchUi.WatchFace {
     var S as Float = 1.0;
     var CX as Float = 227.0;
-    const ACCENTS = [0xbc73ff, 0x9252e3, 0xdcadff, 0xff993d, 0x52dfff, 0xb8ed95];
+    const ACCENTS = [0x9d7bff, 0x6a4cff, 0xd6ccff, 0xff993d, 0x52dfff, 0xb8ed95];
     const AMBER = 3;
     const WALKING_STEPS = 60;
     const RESET_HOLD = 300;
@@ -22,7 +22,9 @@ class PantherView extends WatchUi.WatchFace {
     const TOP = [true, true, false, false];
     var BAR_R as Float = 214.0;
     var LABEL_R as Float = 193.0;
-    const TRACK = 0x24152f;
+    const TRACK = 0x221a4a;
+    // Move alert as vibranium charge by level 0-5: near white when charged, dimmer per idle level, magenta when drained.
+    const CHARGE = [0xe9e3ff, 0xbca8ff, 0x9d7bff, 0x7a55f0, 0x5f3cd6, 0xff4fd8];
     const SHIFTS = [[0, 0], [2, 0], [2, 2], [0, 2]];
     // Hand outlines from the prototype SVG, relative to the centre, pointing at 12.
     const HOUR = [[-9, 6], [-10, -94], [0, -115], [10, -94], [9, 6]];
@@ -103,9 +105,9 @@ class PantherView extends WatchUi.WatchFace {
         drawHand(dc, HOUR, hs[0][0], CX, CX, true);
         drawHand(dc, MINUTE, hs[1][0], CX, CX, true);
         drawSeconds(dc, ct.sec * 6.0);
-        dc.setColor(0xe5caff, Graphics.COLOR_TRANSPARENT);
+        dc.setColor(0xe9e3ff, Graphics.COLOR_TRANSPARENT);
         dc.fillCircle(CX, CX, 10 * S);
-        dc.setColor(0x283334, Graphics.COLOR_TRANSPARENT);
+        dc.setColor(0x2a1f5c, Graphics.COLOR_TRANSPARENT);
         dc.setPenWidth(4);
         dc.drawCircle(CX, CX, 10 * S);
     }
@@ -144,6 +146,20 @@ class PantherView extends WatchUi.WatchFace {
 
     // No bezel or numerals: minute ticks where no corner bar is shown, plus the dim bar tracks.
     function drawEdge(dc as Dc) as Void {
+        // Poster backdrop: an indigo glow at the centre, eased to black under the ticks.
+        for (var i = 1; i <= 20; i++) {
+            var v = i * i;
+            dc.setColor((0x26 * v / 400) << 16 | (0x1b * v / 400) << 8 | 0x58 * v / 400, Graphics.COLOR_TRANSPARENT);
+            dc.fillCircle(CX, CX, (21 - i) * 10 * S);
+        }
+        // Faint light beam across the dial, as on the poster: halo, mid line, core, ending inside the ticks.
+        var bx = Math.sin(Math.PI * 44 / 180) * 196 * S, by = Math.cos(Math.PI * 44 / 180) * 196 * S;
+        var beam = [[0x1f1850, 12], [0x34297a, 5], [0x6c5cc4, 2]];
+        for (var i = 0; i < 3; i++) {
+            dc.setColor(beam[i][0] as Number, Graphics.COLOR_TRANSPARENT);
+            dc.setPenWidth(((beam[i][1] as Number) * S + 0.5).toNumber());
+            dc.drawLine(CX - bx, CX + by, CX + bx, CX - by);
+        }
         for (var i = 0; i < 60; i++) {
             var deg = i * 6, covered = false;
             for (var k = 0; k < 4; k++) {
@@ -153,7 +169,7 @@ class PantherView extends WatchUi.WatchFace {
             var cardinal = i % 15 == 0, major = i % 5 == 0, a = deg * Math.PI / 180, s = Math.sin(a), c = Math.cos(a);
             var r0 = (cardinal ? 225 : major ? 224 : 223) * S, r1 = (cardinal ? 200 : major ? 208 : 216) * S;
             dc.setPenWidth(((cardinal ? 6 : major ? 4 : 2) * S + 0.5).toNumber());
-            dc.setColor(cardinal ? 0xe5cff6 : major ? 0x9a80ad : 0x4a2f5a, Graphics.COLOR_TRANSPARENT);
+            dc.setColor(cardinal ? 0xece6ff : major ? 0x9a8fd8 : 0x3b3178, Graphics.COLOR_TRANSPARENT);
             dc.drawLine(CX + s * r0, CX - c * r0, CX + s * r1, CX - c * r1);
         }
         for (var k = 0; k < 4; k++) {
@@ -191,7 +207,7 @@ class PantherView extends WatchUi.WatchFace {
         for (var k = 0; k < 4; k++) {
             var d = barValues[k] as Array?;
             if (bars[k] == 0 || d == null) { continue; }
-            var id = Fields.BAR_IDS[bars[k]] as Number, n = segments(k), p = d[1] as Float?, col = accent(), textCol = 0xf5f6f7, label = "";
+            var id = Fields.BAR_IDS[bars[k]] as Number, n = segments(k), p = d[1] as Float?, col = accent(), textCol = 0xf5f6f7, label = "", pulse = -1;
             var lit = p == null ? 0 : (p * n).toNumber();
             if (id == Fields.STEPS) {
                 label = Fields.str(Rez.Strings.LSteps) + " " + d[(d.size() > 3 ? 3 : 0)];
@@ -208,22 +224,24 @@ class PantherView extends WatchUi.WatchFace {
                 if (moveLevel < 0) { lit = 0; label = Fields.str(Rez.Strings.LMove) + " --"; }
                 else if (moveLevel == 0) {
                     lit = n;
+                    col = CHARGE[0];
                     label = Fields.str(Time.now().value() < resetUntil ? Rez.Strings.Reset : Rez.Strings.Active);
                 } else {
                     lit = n - moveLevel < 1 ? 1 : n - moveLevel;
-                    col = moveLevel >= n ? 0xff5a5a : 0xff993d;
+                    col = CHARGE[moveLevel < CHARGE.size() ? moveLevel : CHARGE.size() - 1] as Number;
                     textCol = col;
                     label = Fields.str(walking ? Rez.Strings.KeepGoing : Rez.Strings.MoveAlert) + " " + moveLevel + "/5";
-                    // Blink the last segment while walking it off; high-power mode only, as this path is.
-                    if (walking && sec % 2 == 1) { lit -= 1; }
+                    // Walking it off: absorbed energy runs along the empty segments, one per second in high-power mode.
+                    if (walking) { pulse = lit + sec % (n - lit); }
                 }
             } else if (p != null && p >= 1) {
                 label = Fields.str(Rez.Strings.Recharged);
-                col = 0xe5caff;
+                col = 0xe9e3ff;
             } else {
                 label = Fields.str(Rez.Strings.LRecovery) + " " + d[0];
             }
             for (var j = 0; j < lit && j < n; j++) { drawSegment(dc, k, j, n, col); }
+            if (pulse >= 0) { drawSegment(dc, k, pulse, n, CHARGE[0]); }
             if (f == null) { continue; }
             dc.setColor(textCol, Graphics.COLOR_TRANSPARENT);
             dc.drawRadialText(CX, CX, f, label as String, Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER,
@@ -235,9 +253,9 @@ class PantherView extends WatchUi.WatchFace {
     // Chronos-style subdial: a flat plate inside a darker rim, thin progress ring.
     function drawGauge(dc as Dc, id as Number, c as Array<Float>, d as Array) as Void {
         var x = c[0], y = c[1], r = c[2], value = d[0] as String, p = d[1] as Float?;
-        dc.setColor(0x0b0710, Graphics.COLOR_TRANSPARENT);
+        dc.setColor(0x0a0820, Graphics.COLOR_TRANSPARENT);
         dc.fillCircle(x, y, r);
-        dc.setColor(0x1a1224, Graphics.COLOR_TRANSPARENT);
+        dc.setColor(0x1a1542, Graphics.COLOR_TRANSPARENT);
         dc.fillCircle(x, y, r - 5 * S);
         if (p != null) {
             dc.setPenWidth(3);
@@ -255,12 +273,12 @@ class PantherView extends WatchUi.WatchFace {
             var today = (d[3] as Number) - 1, days = "SMTWTFS";
             for (var i = 0; i < 7; i++) {
                 var a = i * 2 * Math.PI / 7, k = (today + i) % 7;
-                dc.setColor(i == 0 ? accent() : 0x9278a6, Graphics.COLOR_TRANSPARENT);
+                dc.setColor(i == 0 ? accent() : 0x8a7fc8, Graphics.COLOR_TRANSPARENT);
                 text(dc, x + Math.sin(a) * (r - 14 * S), y - Math.cos(a) * (r - 14 * S), (r * 0.2 / S + 6).toNumber() / 2 * 2, days.substring(k, k + 1) as String);
             }
             dc.setColor(0xf5f6f7, Graphics.COLOR_TRANSPARENT);
             text(dc, x, y - r * 0.2, (r * 0.66 / S).toNumber() / 2 * 2, value);
-            dc.setColor(0xb9a6c9, Graphics.COLOR_TRANSPARENT);
+            dc.setColor(0xb5abe6, Graphics.COLOR_TRANSPARENT);
             text(dc, x, y + r * 0.27, (r * 0.34 / S).toNumber() / 2 * 2, d[2] as String);
             return;
         }
@@ -284,12 +302,12 @@ class PantherView extends WatchUi.WatchFace {
             pts.add([cx + px * c - py * s, cy + px * s + py * c]);
         }
         if (filled) {
-            dc.setColor(0xe5caff, Graphics.COLOR_TRANSPARENT);
+            dc.setColor(0xe9e3ff, Graphics.COLOR_TRANSPARENT);
             dc.fillPolygon(pts);
-            dc.setColor(0x553166, Graphics.COLOR_TRANSPARENT);
+            dc.setColor(0x2e2370, Graphics.COLOR_TRANSPARENT);
             dc.setPenWidth(3);
         } else {
-            dc.setColor(0x84718f, Graphics.COLOR_TRANSPARENT);
+            dc.setColor(0x8a80c0, Graphics.COLOR_TRANSPARENT);
             dc.setPenWidth(1);
         }
         for (var i = 0; i < pts.size(); i++) {
@@ -303,7 +321,7 @@ class PantherView extends WatchUi.WatchFace {
         dc.setColor(accent(), Graphics.COLOR_TRANSPARENT);
         dc.setPenWidth(2);
         dc.drawLine(CX - s * 25 * S, CX + c * 25 * S, CX + s * 184 * S, CX - c * 184 * S);
-        dc.setColor(0x08030d, Graphics.COLOR_TRANSPARENT);
+        dc.setColor(0x0a0820, Graphics.COLOR_TRANSPARENT);
         dc.fillCircle(CX - s * 20 * S, CX + c * 20 * S, 4 * S);
         dc.setColor(accent(), Graphics.COLOR_TRANSPARENT);
         dc.drawCircle(CX - s * 20 * S, CX + c * 20 * S, 4 * S);
@@ -333,7 +351,7 @@ class PantherView extends WatchUi.WatchFace {
             // Sun behind a cloud, as on the Chronos weather subdial.
             dc.drawCircle(ox + 5, oy + 5, 3);
             line(dc, ox, oy, 5, -1, 5, 0); line(dc, ox, oy, -1, 5, 0, 5); line(dc, ox, oy, 1, 1, 2, 2); line(dc, ox, oy, 9, 1, 8, 2);
-            dc.setColor(0x1c1426, Graphics.COLOR_TRANSPARENT);
+            dc.setColor(0x1a1542, Graphics.COLOR_TRANSPARENT);
             dc.fillRoundedRectangle(ox + 2, oy + 7, 13, 7, 3);
             dc.setColor(accent(), Graphics.COLOR_TRANSPARENT);
             dc.drawRoundedRectangle(ox + 2, oy + 7, 13, 7, 3);

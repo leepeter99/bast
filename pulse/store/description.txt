@@ -24,7 +24,7 @@ Pick any four of:
 
 CORNER BARS
 Four bars run along the dial edge. Each one shows Steps, Body Battery, Move alert, Recovery, Stress or Floors climbed, or can be turned off. The fill always tracks the real value.
-• Move alert reads ACTIVE when you've moved recently, loses a segment for each step of idleness, and refills when you walk it off.
+• Move alert reads as vibranium charge: it glows CHARGED when you've moved recently, dims a segment for each step of idleness, and recharges when you walk it off.
 • Recovery fills as your recovery time runs down, and shows RECHARGED at zero.
 • Stress fills as you calm down and turns orange when stress is high. It is also available as a gauge.
 

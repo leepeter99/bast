@@ -66,10 +66,10 @@
     <string id="LStress">STRESS</string>
     <string id="LFloors">FLOORS</string>
     <string id="Recharged">RECHARGED</string>
-    <string id="Active">ACTIVE</string>
+    <string id="Active">CHARGED</string>
     <string id="MoveAlert">MOVE!</string>
     <string id="KeepGoing">KEEP GOING</string>
-    <string id="Reset">RESET</string>
+    <string id="Reset">RECHARGED</string>
     <string id="Rise">RISE</string>
     <string id="Set">SET</string>
     <string id="Gauges">Gauges</string>
