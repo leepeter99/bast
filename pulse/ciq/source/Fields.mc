@@ -27,7 +27,8 @@ module Fields {
     const CITIES = [
         ["LON", 51.507, -0.128], ["NYC", 40.713, -74.006], ["TYO", 35.690, 139.692],
         ["SYD", -33.869, 151.209], ["SIN", 1.352, 103.820], ["KUL", 3.139, 101.687],
-        ["CCU", 22.573, 88.364], ["DXB", 25.205, 55.271], ["UTC", null, null]
+        ["CCU", 22.573, 88.364], ["DXB", 25.205, 55.271], ["UTC", null, null],
+        ["BKK", 13.756, 100.502], ["TPE", 25.033, 121.565]
     ];
 
     // v if it is a Number in [0, n), else dflt. Settings come from the phone and may be stale.

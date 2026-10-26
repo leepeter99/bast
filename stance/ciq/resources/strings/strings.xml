@@ -45,6 +45,8 @@
     <string id="C6">Kolkata</string>
     <string id="C7">Dubai</string>
     <string id="C8">UTC</string>
+    <string id="C9">Bangkok</string>
+    <string id="C10">Taipei</string>
     <string id="TimeStyle">Time style</string>
     <string id="T0">Analog</string>
     <string id="T1">Hybrid</string>

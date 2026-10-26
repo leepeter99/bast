@@ -127,6 +127,8 @@
             <listEntry value="6">@Strings.C6</listEntry>
             <listEntry value="7">@Strings.C7</listEntry>
             <listEntry value="8">@Strings.C8</listEntry>
+            <listEntry value="9">@Strings.C9</listEntry>
+            <listEntry value="10">@Strings.C10</listEntry>
         </settingConfig>
     </setting>
     <setting propertyKey="@Properties.useCustomZone" title="@Strings.UseCustom">
