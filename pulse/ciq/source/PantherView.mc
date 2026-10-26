@@ -23,8 +23,6 @@ class PantherView extends WatchUi.WatchFace {
     var BAR_R as Float = 214.0;
     var LABEL_R as Float = 193.0;
     const TRACK = 0x24152f;
-    const HYBRID_CLOSED = [false, true, true, true, false, false, false, false];
-    const OPEN = [false, false, false, false, false, false, false, false];
     const SHIFTS = [[0, 0], [2, 0], [2, 2], [0, 2]];
     // Hand outlines from the prototype SVG, relative to the centre, pointing at 12.
     const HOUR = [[-9, 6], [-10, -94], [0, -115], [10, -94], [9, 6]];
@@ -33,15 +31,14 @@ class PantherView extends WatchUi.WatchFace {
     const MINUTE_AOD = [[-5, -14], [-7, -149], [0, -168], [7, -149], [5, -14]];
 
     var sleeping as Boolean = false;
-    var fields as Array<Number> = [7, 5, 4, 0];
+    var fields as Array<Number> = [7, 4, 0];
     var bars as Array<Number> = [1, 3, 2, 4];
     var barValues as Array = [null, null, null, null];
-    var hybrid as Boolean = false;
     var accentIdx as Number = 0;
-    var last as Array<Number> = [0, 2, 4, 6];
-    var slots as Array<Number> = [0, 2, 4, 6];
+    var last as Array<Number> = [0, 2, 4];
+    var slots as Array<Number> = [0, 2, 4];
     var circles as Array = [];
-    var values as Array = [null, null, null, null];
+    var values as Array = [null, null, null];
     var cachedMin as Number = -1;
     var fonts as Dictionary<Number, Graphics.VectorFont?> = {};
     var edgeRef as Graphics.BufferedBitmapReference?;
@@ -61,13 +58,10 @@ class PantherView extends WatchUi.WatchFace {
     }
 
     function loadSettings() as Void {
-        for (var i = 0; i < 4; i++) { fields[i] = Fields.field(i); }
+        for (var i = 0; i < 3; i++) { fields[i] = Fields.field(i); }
         bars = Fields.bars();
-        // Hybrid: the digits take the right side, so the right gauge goes and slots 1-3 close.
-        hybrid = Fields.index(Application.Properties.getValue("timeStyle"), 2, 0) == 1;
-        if (hybrid) { fields[1] = -1; }
         accentIdx = Fields.index(Application.Properties.getValue("accent"), ACCENTS.size(), 0);
-        last = [0, 2, 4, 6];
+        last = [0, 2, 4];
         cachedMin = -1;
         edgeRef = null;
     }
@@ -89,23 +83,22 @@ class PantherView extends WatchUi.WatchFace {
             return;
         }
         if (m != cachedMin) {
-            slots = Layout.assign(m, fields, last, hybrid ? HYBRID_CLOSED : OPEN);
+            slots = Layout.assign(m, fields, last);
             last = slots;
-            circles = Layout.fit(slots, m, hybrid ? Layout.DIGITS_X : 9999.0);
+            circles = Layout.fit(slots, m);
+            for (var i = 0; i < 3; i++) { values[i] = Fields.read(fields[i]); }
             for (var i = 0; i < 4; i++) {
-                values[i] = fields[i] < 0 ? null : Fields.read(fields[i]);
                 barValues[i] = bars[i] == 0 ? null : Fields.read(Fields.BAR_IDS[bars[i]] as Number);
             }
             cachedMin = m;
         }
         dc.drawBitmap(0, 0, edge());
         drawBars(dc, ct.sec);
-        for (var i = 0; i < 4; i++) {
+        for (var i = 0; i < 3; i++) {
             if (slots[i] < 0) { continue; }
             if (fields[i] == Fields.HEART) { values[i] = Fields.read(Fields.HEART); }
             drawGauge(dc, fields[i], circles[i] as Array<Float>, values[i] as Array);
         }
-        if (hybrid) { drawDigits(dc, ct); }
         var hs = Layout.hands(m);
         drawHand(dc, HOUR, hs[0][0], CX, CX, true);
         drawHand(dc, MINUTE, hs[1][0], CX, CX, true);
@@ -194,7 +187,7 @@ class PantherView extends WatchUi.WatchFace {
 
     // Lit segments and the label inside each bar. Every bar reads full = good, so Move drains.
     function drawBars(dc as Dc, sec as Number) as Void {
-        var f = font((13 * S).toNumber());
+        var f = font((17 * S).toNumber());
         for (var k = 0; k < 4; k++) {
             var d = barValues[k] as Array?;
             if (bars[k] == 0 || d == null) { continue; }
@@ -220,7 +213,7 @@ class PantherView extends WatchUi.WatchFace {
                     lit = n - moveLevel < 1 ? 1 : n - moveLevel;
                     col = moveLevel >= n ? 0xff5a5a : 0xff993d;
                     textCol = col;
-                    label = Fields.str(walking ? Rez.Strings.KeepGoing : Rez.Strings.MoveAlert);
+                    label = Fields.str(walking ? Rez.Strings.KeepGoing : Rez.Strings.MoveAlert) + " " + moveLevel + "/5";
                     // Blink the last segment while walking it off; high-power mode only, as this path is.
                     if (walking && sec % 2 == 1) { lit -= 1; }
                 }
@@ -237,14 +230,6 @@ class PantherView extends WatchUi.WatchFace {
                 (450 - (SPANS[k][0] + SPANS[k][1]) / 2) % 360, LABEL_R,
                 TOP[k] ? Graphics.RADIAL_TEXT_DIRECTION_CLOCKWISE : Graphics.RADIAL_TEXT_DIRECTION_COUNTER_CLOCKWISE);
         }
-    }
-
-    // Hybrid: stacked hours, minutes and seconds right of centre, under the hands.
-    function drawDigits(dc as Dc, ct as System.ClockTime) as Void {
-        dc.setColor(0xf5f6f7, Graphics.COLOR_TRANSPARENT);
-        text(dc, 345 * S, 178 * S, 92, Fields.hour(ct.hour));
-        text(dc, 345 * S, 262 * S, 92, ct.min.format("%02d"));
-        text(dc, 345 * S, 322 * S, 36, ct.sec.format("%02d"));
     }
 
     // Chronos-style subdial: a flat plate inside a darker rim, thin progress ring.
