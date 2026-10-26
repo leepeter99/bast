@@ -236,12 +236,13 @@ class PantherView extends WatchUi.WatchFace {
                     var fresh = Time.now().value() < resetUntil;
                     lit = n;
                     col = fresh ? GLOW : CHARGE[0];
-                    // Words only while an alert is up; a fresh recharge shows as the white glow alone.
+                    // White CHARGED like the other bars' labels; words and mask turn magenta only during an alert.
+                    num = Fields.str(Rez.Strings.Active);
                 } else {
                     var lv = moveLevel < n ? moveLevel : n;
                     lit = n - lv;
                     col = CHARGE[lv] as Number;
-                    textCol = col;
+                    textCol = CHARGE[CHARGE.size() - 1] as Number;
                     hollow = lit == 0;
                     num = Fields.str(walking ? Rez.Strings.KeepGoing : Rez.Strings.MoveAlert) + " " + moveLevel + "/5";
                     // Walking it off: absorbed energy runs along the empty segments, one per second in high-power mode.
