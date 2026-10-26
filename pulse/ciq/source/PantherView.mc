@@ -236,8 +236,7 @@ class PantherView extends WatchUi.WatchFace {
                     var fresh = Time.now().value() < resetUntil;
                     lit = n;
                     col = fresh ? GLOW : CHARGE[0];
-                    // Charged shows the mask alone.
-                    num = fresh ? Fields.str(Rez.Strings.Reset) : "";
+                    // Words only while an alert is up; a fresh recharge shows as the white glow alone.
                 } else {
                     var lv = moveLevel < n ? moveLevel : n;
                     lit = n - lv;
@@ -261,9 +260,9 @@ class PantherView extends WatchUi.WatchFace {
             // arc so it stands upright beside the text, which reads clockwise on top and counter-clockwise below.
             // ponytail: text width estimated at 0.5 em per glyph; measure it if labels look off-centre.
             var mid = (SPANS[k][0] + SPANS[k][1]) / 2.0, dir = TOP[k] ? 1 : -1, deg = 180 / Math.PI / LABEL_R;
-            var iw = 22 * S, tw = num.length() * 12 * S, gap = num.length() > 0 ? 6 * S : 0, w = iw + gap + tw;
+            var iw = 24 * S, tw = num.length() * 12 * S, gap = num.length() > 0 ? 6 * S : 0, w = iw + gap + tw;
             var ia = mid + dir * (iw - w) / 2 * deg, ta = mid + dir * (iw + gap + tw / 2 - w / 2) * deg, a = ia * Math.PI / 180;
-            drawIcon(dc, id, CX + Math.sin(a) * LABEL_R, CX - Math.cos(a) * LABEL_R, 1.25 * S, TOP[k] ? ia : ia + 180, textCol, Graphics.COLOR_BLACK);
+            drawIcon(dc, id, CX + Math.sin(a) * LABEL_R, CX - Math.cos(a) * LABEL_R, 1.4 * S, TOP[k] ? ia : ia + 180, textCol, Graphics.COLOR_BLACK);
             if (f == null || num.length() == 0) { continue; }
             dc.setColor(textCol, Graphics.COLOR_TRANSPARENT);
             dc.drawRadialText(CX, CX, f, num, Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER,
@@ -378,13 +377,14 @@ class PantherView extends WatchUi.WatchFace {
             pl(dc, [[8, 9], [4, 9], [1, 6], [2, 3], [5, 3], [8, 7]], true);
             pl(dc, [[8, 7], [11, 2], [14, 2], [16, 5], [13, 8], [8, 8]], true);
         } else if (id == Fields.BODY) {
-            // A vibranium crystal.
-            pl(dc, [[8, 0], [15, 6], [8, 16], [1, 6]], true);
-            pl(dc, [[1, 6], [15, 6]], false); pl(dc, [[5, 6], [8, 16], [11, 6]], false);
+            // A solid vibranium cell with a lightning bolt cut out: stored energy.
+            fp(dc, [[8, 0], [14, 4], [14, 12], [8, 16], [2, 12], [2, 4]]);
+            dc.setColor(bg, Graphics.COLOR_TRANSPARENT);
+            fp(dc, [[10, 1], [4, 9], [8, 9], [6, 15], [12, 7], [8, 7]]);
         } else if (id == Fields.STEPS) {
-            // A panther paw print.
-            fp(dc, [[4, 15], [3, 12], [5, 9], [11, 9], [13, 12], [12, 15]]);
-            ci(dc, 2, 7, 2, true); ci(dc, 6, 3, 2, true); ci(dc, 10, 3, 2, true); ci(dc, 14, 7, 2, true);
+            // A panther paw print: a wide pad and four toes, with clear gaps so it reads at bar size.
+            fp(dc, [[8, 9], [12, 11], [14, 14], [12, 16], [4, 16], [2, 14], [4, 11]]);
+            ci(dc, 1.5, 8, 1.8, true); ci(dc, 5.5, 3.5, 1.8, true); ci(dc, 10.5, 3.5, 1.8, true); ci(dc, 14.5, 8, 1.8, true);
         } else if (id == Fields.MOVE) {
             // The panther mask.
             pl(dc, [[1, 0], [5, 4], [11, 4], [15, 0], [15, 8], [8, 16], [1, 8]], true);

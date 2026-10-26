@@ -1,6 +1,6 @@
 # Move alert as vibranium charge
 
-This supersedes the Move alert colours in ADR 0005. The bar still drains one segment per idle level, but it now reads as stored vibranium charge instead of a warning light. At level 0 all five segments are vibranium purple and the label reads "CHARGED". Each idle level removes a segment and dims the rest toward deep violet. At level 5 the bar is drained: all five segments are empty, black cells with magenta outlines, and the label turns magenta. While the wearer walks it off, one white segment runs along the empty part of the bar each second, showing absorbed energy. After the level drops to 0, the full bar glows white and the label reads "RECHARGED" for 5 minutes, then it returns to purple.
+This supersedes the Move alert colours in ADR 0005. The bar still drains one segment per idle level, but it now reads as stored vibranium charge instead of a warning light. At level 0 all five segments are vibranium purple and the label reads "CHARGED". Each idle level removes a segment and dims the rest toward deep violet. At level 5 the bar is drained: all five segments are empty, black cells with magenta outlines, and the label turns magenta. While the wearer walks it off, one white segment runs along the empty part of the bar each second, showing absorbed energy. After the level drops to 0, the full bar glows white for 5 minutes, then it returns to purple. Words show only while an alert is up (ADR 0010).
 
 ## Consequences
 
