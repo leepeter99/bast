@@ -7,15 +7,15 @@ An analog watch face for the Garmin FR965. User-chosen data stays readable by mo
 ### Layout
 
 **Field**:
-One user-chosen metric shown in a gauge, such as heart rate or the date. There are four, or three in Hybrid.
+One user-chosen metric shown in a gauge, such as heart rate or the date. There are three.
 _Avoid_: Complication, widget, metric slot
 
 **Slot**:
-One of eight fixed positions evenly spaced on a ring around the dial centre where a field can sit.
+One of six fixed positions evenly spaced on a ring around the dial centre where a field can sit.
 _Avoid_: Position, spot
 
 **Home slot**:
-A field's preferred slot: top, right, bottom or left. Each field has a different one.
+A field's preferred slot: top, lower right or lower left. Each field has a different one.
 _Avoid_: Default position, direction
 
 **Blocked**:
@@ -27,7 +27,7 @@ A field moving from its home slot to another slot because its home slot is block
 _Avoid_: Reflow, rearrangement
 
 **Hidden field**:
-A field that isn't shown because no slot is free and unblocked. When slots run short, fields are hidden from the left home slot first and from the top home slot last.
+A field that isn't shown because no slot is free and unblocked. When slots run short, fields are hidden from the lower-left home slot first and from the top home slot last.
 _Avoid_: Dropped field, collapsed
 
 **Gauge**:
@@ -64,16 +64,8 @@ _Avoid_: Recovered, ready
 
 ### Modes
 
-**Time style**:
-How the time is shown in active mode: Analog (hands only) or Hybrid.
-_Avoid_: Layout, mode
-
-**Hybrid**:
-The time style with stacked hour, minute and second digits right of centre, under the hands. It shows three fields, and none sits on the right side.
-_Avoid_: Digital, dual
-
 **Active mode**:
-The full face: ticks, corner bars, fields, all three hands, and the digits in Hybrid.
+The full face: ticks, corner bars, fields and all three hands.
 _Avoid_: Normal mode, high-power mode
 
 **Always-on mode**:

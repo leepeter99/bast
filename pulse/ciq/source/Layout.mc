@@ -15,7 +15,7 @@ module Layout {
     var HOUR_LEN as Float = 117.0;
     var MIN_LEN as Float = 170.0;
     var BLOCK as Float = 65.0;      // = start radius 53 + hand clearance 12
-    var R0 as Float = 53.0;      // adjacent slots are 133 apart; RING + R0 stays inside EDGE
+    var R0 as Float = 53.0;      // adjacent slots are 133 apart; RING + R0 = EDGE exactly
     var PAD as Float = 12.0;
     var GAP as Float = 7.0;
 
@@ -113,7 +113,7 @@ module Layout {
             for (var i = 0; i < cs.size(); i++) {
                 if (cs[i] == null) { continue; }
                 var r = (cs[i] as Array<Float>)[2] + S, c = place(slots, r)[i] as Array<Float>, x = c[0], y = c[1];
-                if (Math.sqrt((x - CX) * (x - CX) + (y - CX) * (y - CX)) + r > EDGE) { continue; }
+                if (Math.sqrt((x - CX) * (x - CX) + (y - CX) * (y - CX)) + r > EDGE + 0.01 * S) { continue; }  // RING + R0 == EDGE, so allow float noise
                 if (clearance(x, y, m) < r + PAD) { continue; }
                 var hit = false;
                 for (var j = 0; j < cs.size(); j++) {
