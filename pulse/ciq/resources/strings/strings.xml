@@ -59,12 +59,6 @@
     <string id="B4">Recovery</string>
     <string id="B5">Stress</string>
     <string id="B6">Floors climbed</string>
-    <string id="LSteps">STEPS</string>
-    <string id="LBody">BODY BATTERY</string>
-    <string id="LMove">MOVE</string>
-    <string id="LRecovery">RECOVERY</string>
-    <string id="LStress">STRESS</string>
-    <string id="LFloors">FLOORS</string>
     <string id="Recharged">RECHARGED</string>
     <string id="Active">CHARGED</string>
     <string id="MoveAlert">MOVE!</string>

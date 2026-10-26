@@ -43,7 +43,7 @@ What the Sunrise / Sunset field shows: the next sunrise or sunset today, or tomo
 _Avoid_: Sunrise time, daylight
 
 **Corner bar**:
-A segmented bar along the dial edge in one of four corners, showing one bar metric or turned off. Its fill always tracks the real value. Minute ticks show only where no corner bar is drawn.
+A segmented bar along the dial edge in one of four corners, showing one bar metric or turned off. Its fill always tracks the real value, and its label is the metric's icon followed by its number. Minute ticks show only where no corner bar is drawn.
 _Avoid_: Arc gauge, bezel, side field
 
 **Bar metric**:
@@ -51,7 +51,7 @@ What a corner bar shows: Steps, Body Battery, Move alert, Recovery, Stress or Fl
 _Avoid_: Field, side field
 
 **Move alert**:
-The bar metric for Garmin's inactivity warning. It reads as vibranium charge: full and purple when the wearer has moved recently ("CHARGED"), losing a segment and dimming for each step of idleness ("MOVE!"), drained to empty magenta-outlined cells at the last step, and refilling white at once when the wearer walks it off ("RECHARGED", held a few minutes). While the alert is up and the wearer is walking, it shows "KEEP GOING".
+The bar metric for Garmin's inactivity warning. It reads as vibranium charge: full and purple, with only its mask icon, when the wearer has moved recently, losing a segment and dimming for each step of idleness ("MOVE!"), drained to empty magenta-outlined cells at the last step, and refilling white at once when the wearer walks it off ("RECHARGED", held a few minutes). While the alert is up and the wearer is walking, it shows "KEEP GOING".
 _Avoid_: Move bar (Garmin's name), inactivity, idle alert
 
 **Recovery peak**:
