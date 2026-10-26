@@ -16,8 +16,8 @@ import Toybox.WatchUi;
 module Fields {
     enum { HEART, RESTING, RECOVERY, BODY, WEATHER, BATTERY, STEPS, DATE, CALORIES, DISTANCE, SUNRISE, STRESS, ZONE, MOVE, FLOORS, PULSEOX, RESP, HILOW, BIKE, RUN, ALTITUDE, PRESSURE }
     const COUNT = 22;
-    // Gauge defaults per position (top, right, bottom, left).
-    const DEFAULTS = [DATE, BATTERY, WEATHER, HEART];
+    // Gauge defaults per position (top, lower right, lower left).
+    const DEFAULTS = [DATE, WEATHER, HEART];
     // Corner bar options: Off, Steps, Body Battery, Move, Recovery, Stress, Floors (ADR 0005).
     const BAR_IDS = [-1, STEPS, BODY, MOVE, RECOVERY, STRESS, FLOORS];
     // Upper left, upper right, lower left, lower right.
@@ -35,9 +35,9 @@ module Fields {
         return v instanceof Number && v >= 0 && v < n ? v : dflt;
     }
 
-    // Metrics shown only on the corner bars, never as a gauge.
+    // Metrics shown only on the corner bars, never as a gauge. Stress and Recovery can be both.
     function fixed(id as Number) as Boolean {
-        return id == STEPS || id == BODY || id == MOVE || id == RECOVERY || id == FLOORS;
+        return id == STEPS || id == BODY || id == MOVE || id == FLOORS;
     }
 
     // The gauge at position i, falling back to its default for stale or bar-only values.

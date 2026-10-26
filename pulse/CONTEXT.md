@@ -7,15 +7,15 @@ An analog watch face for the Garmin FR965. User-chosen data stays readable by mo
 ### Layout
 
 **Field**:
-One user-chosen metric shown in a gauge, such as heart rate or the date. There are four, or three in Hybrid.
+One user-chosen metric shown in a gauge, such as heart rate or the date. There are three.
 _Avoid_: Complication, widget, metric slot
 
 **Slot**:
-One of eight fixed positions evenly spaced on a ring around the dial centre where a field can sit.
+One of twelve fixed positions evenly spaced on a ring around the dial centre, like the hours, where a field can sit. Two fields are always at least two slots apart.
 _Avoid_: Position, spot
 
 **Home slot**:
-A field's preferred slot: top, right, bottom or left. Each field has a different one.
+A field's preferred slot: top, lower right or lower left. Each field has a different one.
 _Avoid_: Default position, direction
 
 **Blocked**:
@@ -23,11 +23,11 @@ Describes a slot that the hour or minute hand passes too close to for a field to
 _Avoid_: Obstructed, covered, unsafe
 
 **Relocation**:
-A field moving from its home slot to another slot because its home slot is blocked.
+A field moving from its home slot to another slot because its home slot is blocked. It goes to the free slot where the gauges end up largest, not simply the nearest one.
 _Avoid_: Reflow, rearrangement
 
 **Hidden field**:
-A field that isn't shown because no slot is free and unblocked. When slots run short, fields are hidden from the left home slot first and from the top home slot last.
+A field that isn't shown because no slot is free and unblocked. When slots run short, fields are hidden from the lower-left home slot first and from the top home slot last.
 _Avoid_: Dropped field, collapsed
 
 **Gauge**:
@@ -43,15 +43,15 @@ What the Sunrise / Sunset field shows: the next sunrise or sunset today, or tomo
 _Avoid_: Sunrise time, daylight
 
 **Corner bar**:
-A segmented bar along the dial edge in one of four corners, showing one bar metric or turned off. Its fill always tracks the real value. Minute ticks show only where no corner bar is drawn.
+A segmented bar along the dial edge in one of four corners, showing one bar metric or turned off. Its fill always tracks the real value, and its label is the metric's icon followed by its number. Minute ticks show only where no corner bar is drawn.
 _Avoid_: Arc gauge, bezel, side field
 
 **Bar metric**:
-What a corner bar shows: Steps, Body Battery, Move alert, Recovery, Stress or Floors climbed. Stress is also a field. Every other bar metric is never a field, so it never relocates or hides behind the hands. Each one appears on at most one corner. Every bar reads full = good, so the Stress bar fills as the wearer calms.
+What a corner bar shows: Steps, Body Battery, Move alert, Recovery, Stress or Floors climbed. Stress and Recovery are also fields. Every other bar metric is never a field, so it never relocates or hides behind the hands. Each one appears on at most one corner. Every bar reads full = good, so the Stress bar fills as the wearer calms.
 _Avoid_: Field, side field
 
 **Move alert**:
-The bar metric for Garmin's inactivity warning. It reads full when the wearer has moved recently ("ACTIVE"), loses a segment for each step of idleness ("MOVE!"), and refills at once when the wearer walks it off ("RESET", held a few minutes). While the alert is up and the wearer is walking, it shows "KEEP GOING".
+The bar metric for Garmin's inactivity warning. It reads as vibranium charge: full and purple, labelled "CHARGED" in white, when the wearer has moved recently, losing a segment and dimming for each step of idleness ("MOVE!"), drained to empty violet-outlined cells at the last step, and refilling at once, glowing white for a few minutes, when the wearer walks it off. While the alert is up, its words take a dimmed version of the hands' lilac: "MOVE!", or "KEEP GOING" while the wearer is walking.
 _Avoid_: Move bar (Garmin's name), inactivity, idle alert
 
 **Recovery peak**:
@@ -64,16 +64,8 @@ _Avoid_: Recovered, ready
 
 ### Modes
 
-**Time style**:
-How the time is shown in active mode: Analog (hands only) or Hybrid.
-_Avoid_: Layout, mode
-
-**Hybrid**:
-The time style with stacked hour, minute and second digits right of centre, under the hands. It shows three fields, and none sits on the right side.
-_Avoid_: Digital, dual
-
 **Active mode**:
-The full face: ticks, corner bars, fields, all three hands, and the digits in Hybrid.
+The full face: ticks, corner bars, fields and all three hands.
 _Avoid_: Normal mode, high-power mode
 
 **Always-on mode**:

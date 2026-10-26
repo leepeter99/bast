@@ -1,0 +1,177 @@
+<settings>
+    <setting propertyKey="@Properties.timeStyle" title="@Strings.TimeStyle">
+        <settingConfig type="list">
+            <listEntry value="0">@Strings.T0</listEntry>
+            <listEntry value="1">@Strings.T1</listEntry>
+        </settingConfig>
+    </setting>
+    <setting propertyKey="@Properties.field0" title="@Strings.Top">
+        <settingConfig type="list">
+            <listEntry value="0">@Strings.M0</listEntry>
+            <listEntry value="1">@Strings.M1</listEntry>
+            <listEntry value="4">@Strings.M4</listEntry>
+            <listEntry value="5">@Strings.M5</listEntry>
+            <listEntry value="7">@Strings.M7</listEntry>
+            <listEntry value="8">@Strings.M8</listEntry>
+            <listEntry value="9">@Strings.M9</listEntry>
+            <listEntry value="10">@Strings.M10</listEntry>
+            <listEntry value="11">@Strings.M11</listEntry>
+            <listEntry value="12">@Strings.M12</listEntry>
+            <listEntry value="15">@Strings.M15</listEntry>
+            <listEntry value="16">@Strings.M16</listEntry>
+            <listEntry value="17">@Strings.M17</listEntry>
+            <listEntry value="18">@Strings.M18</listEntry>
+            <listEntry value="19">@Strings.M19</listEntry>
+            <listEntry value="20">@Strings.M20</listEntry>
+            <listEntry value="21">@Strings.M21</listEntry>
+        </settingConfig>
+    </setting>
+    <setting propertyKey="@Properties.field1" title="@Strings.Right">
+        <settingConfig type="list">
+            <listEntry value="0">@Strings.M0</listEntry>
+            <listEntry value="1">@Strings.M1</listEntry>
+            <listEntry value="4">@Strings.M4</listEntry>
+            <listEntry value="5">@Strings.M5</listEntry>
+            <listEntry value="7">@Strings.M7</listEntry>
+            <listEntry value="8">@Strings.M8</listEntry>
+            <listEntry value="9">@Strings.M9</listEntry>
+            <listEntry value="10">@Strings.M10</listEntry>
+            <listEntry value="11">@Strings.M11</listEntry>
+            <listEntry value="12">@Strings.M12</listEntry>
+            <listEntry value="15">@Strings.M15</listEntry>
+            <listEntry value="16">@Strings.M16</listEntry>
+            <listEntry value="17">@Strings.M17</listEntry>
+            <listEntry value="18">@Strings.M18</listEntry>
+            <listEntry value="19">@Strings.M19</listEntry>
+            <listEntry value="20">@Strings.M20</listEntry>
+            <listEntry value="21">@Strings.M21</listEntry>
+        </settingConfig>
+    </setting>
+    <setting propertyKey="@Properties.field2" title="@Strings.Bottom">
+        <settingConfig type="list">
+            <listEntry value="0">@Strings.M0</listEntry>
+            <listEntry value="1">@Strings.M1</listEntry>
+            <listEntry value="4">@Strings.M4</listEntry>
+            <listEntry value="5">@Strings.M5</listEntry>
+            <listEntry value="7">@Strings.M7</listEntry>
+            <listEntry value="8">@Strings.M8</listEntry>
+            <listEntry value="9">@Strings.M9</listEntry>
+            <listEntry value="10">@Strings.M10</listEntry>
+            <listEntry value="11">@Strings.M11</listEntry>
+            <listEntry value="12">@Strings.M12</listEntry>
+            <listEntry value="15">@Strings.M15</listEntry>
+            <listEntry value="16">@Strings.M16</listEntry>
+            <listEntry value="17">@Strings.M17</listEntry>
+            <listEntry value="18">@Strings.M18</listEntry>
+            <listEntry value="19">@Strings.M19</listEntry>
+            <listEntry value="20">@Strings.M20</listEntry>
+            <listEntry value="21">@Strings.M21</listEntry>
+        </settingConfig>
+    </setting>
+    <setting propertyKey="@Properties.field3" title="@Strings.Left">
+        <settingConfig type="list">
+            <listEntry value="0">@Strings.M0</listEntry>
+            <listEntry value="1">@Strings.M1</listEntry>
+            <listEntry value="4">@Strings.M4</listEntry>
+            <listEntry value="5">@Strings.M5</listEntry>
+            <listEntry value="7">@Strings.M7</listEntry>
+            <listEntry value="8">@Strings.M8</listEntry>
+            <listEntry value="9">@Strings.M9</listEntry>
+            <listEntry value="10">@Strings.M10</listEntry>
+            <listEntry value="11">@Strings.M11</listEntry>
+            <listEntry value="12">@Strings.M12</listEntry>
+            <listEntry value="15">@Strings.M15</listEntry>
+            <listEntry value="16">@Strings.M16</listEntry>
+            <listEntry value="17">@Strings.M17</listEntry>
+            <listEntry value="18">@Strings.M18</listEntry>
+            <listEntry value="19">@Strings.M19</listEntry>
+            <listEntry value="20">@Strings.M20</listEntry>
+            <listEntry value="21">@Strings.M21</listEntry>
+        </settingConfig>
+    </setting>
+    <setting propertyKey="@Properties.hourFormat" title="@Strings.HourFormat">
+        <settingConfig type="list">
+            <listEntry value="0">@Strings.H0</listEntry>
+            <listEntry value="1">@Strings.H1</listEntry>
+            <listEntry value="2">@Strings.H2</listEntry>
+        </settingConfig>
+    </setting>
+    <setting propertyKey="@Properties.bar0" title="@Strings.Bar0">
+        <settingConfig type="list">
+            <listEntry value="0">@Strings.B0</listEntry>
+            <listEntry value="1">@Strings.B1</listEntry>
+            <listEntry value="2">@Strings.B2</listEntry>
+            <listEntry value="3">@Strings.B3</listEntry>
+            <listEntry value="4">@Strings.B4</listEntry>
+            <listEntry value="5">@Strings.B5</listEntry>
+            <listEntry value="6">@Strings.B6</listEntry>
+        </settingConfig>
+    </setting>
+    <setting propertyKey="@Properties.bar1" title="@Strings.Bar1">
+        <settingConfig type="list">
+            <listEntry value="0">@Strings.B0</listEntry>
+            <listEntry value="1">@Strings.B1</listEntry>
+            <listEntry value="2">@Strings.B2</listEntry>
+            <listEntry value="3">@Strings.B3</listEntry>
+            <listEntry value="4">@Strings.B4</listEntry>
+            <listEntry value="5">@Strings.B5</listEntry>
+            <listEntry value="6">@Strings.B6</listEntry>
+        </settingConfig>
+    </setting>
+    <setting propertyKey="@Properties.bar2" title="@Strings.Bar2">
+        <settingConfig type="list">
+            <listEntry value="0">@Strings.B0</listEntry>
+            <listEntry value="1">@Strings.B1</listEntry>
+            <listEntry value="2">@Strings.B2</listEntry>
+            <listEntry value="3">@Strings.B3</listEntry>
+            <listEntry value="4">@Strings.B4</listEntry>
+            <listEntry value="5">@Strings.B5</listEntry>
+            <listEntry value="6">@Strings.B6</listEntry>
+        </settingConfig>
+    </setting>
+    <setting propertyKey="@Properties.bar3" title="@Strings.Bar3">
+        <settingConfig type="list">
+            <listEntry value="0">@Strings.B0</listEntry>
+            <listEntry value="1">@Strings.B1</listEntry>
+            <listEntry value="2">@Strings.B2</listEntry>
+            <listEntry value="3">@Strings.B3</listEntry>
+            <listEntry value="4">@Strings.B4</listEntry>
+            <listEntry value="5">@Strings.B5</listEntry>
+            <listEntry value="6">@Strings.B6</listEntry>
+        </settingConfig>
+    </setting>
+    <setting propertyKey="@Properties.city" title="@Strings.City">
+        <settingConfig type="list">
+            <listEntry value="0">@Strings.C0</listEntry>
+            <listEntry value="1">@Strings.C1</listEntry>
+            <listEntry value="2">@Strings.C2</listEntry>
+            <listEntry value="3">@Strings.C3</listEntry>
+            <listEntry value="4">@Strings.C4</listEntry>
+            <listEntry value="5">@Strings.C5</listEntry>
+            <listEntry value="6">@Strings.C6</listEntry>
+            <listEntry value="7">@Strings.C7</listEntry>
+            <listEntry value="8">@Strings.C8</listEntry>
+        </settingConfig>
+    </setting>
+    <setting propertyKey="@Properties.useCustomZone" title="@Strings.UseCustom">
+        <settingConfig type="boolean"/>
+    </setting>
+    <group id="customZone" title="@Strings.CustomZone" enableIfTrue="@Properties.useCustomZone">
+        <setting propertyKey="@Properties.customOffset" title="@Strings.Offset">
+            <settingConfig type="numeric" min="-720" max="840"/>
+        </setting>
+        <setting propertyKey="@Properties.customLabel" title="@Strings.Label">
+            <settingConfig type="alphaNumeric" maxLength="3"/>
+        </setting>
+    </group>
+    <setting propertyKey="@Properties.accent" title="@Strings.Accent">
+        <settingConfig type="list">
+            <listEntry value="0">@Strings.A0</listEntry>
+            <listEntry value="1">@Strings.A1</listEntry>
+            <listEntry value="2">@Strings.A2</listEntry>
+            <listEntry value="3">@Strings.A3</listEntry>
+            <listEntry value="4">@Strings.A4</listEntry>
+            <listEntry value="5">@Strings.A5</listEntry>
+        </settingConfig>
+    </setting>
+</settings>

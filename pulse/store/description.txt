@@ -24,8 +24,9 @@ Pick any four of:
 
 CORNER BARS
 Four bars run along the dial edge. Each one shows Steps, Body Battery, Move alert, Recovery, Stress or Floors climbed, or can be turned off. The fill always tracks the real value.
-• Move alert reads ACTIVE when you've moved recently, loses a segment for each step of idleness, and refills when you walk it off.
-• Recovery fills as your recovery time runs down, and shows RECHARGED at zero.
+• Each bar shows a Black Panther icon and its number, such as a paw print and your full step count.
+• Move alert reads as vibranium charge: full and purple when you've moved recently, it dims a segment for each step of idleness and recharges when you walk it off.
+• Recovery fills as your recovery time runs down, and shows RECHARGED at zero. It is also available as a gauge.
 • Stress fills as you calm down and turns orange when stress is high. It is also available as a gauge.
 
 TIME STYLE

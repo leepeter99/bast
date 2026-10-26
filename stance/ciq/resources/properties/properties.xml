@@ -1,0 +1,17 @@
+<properties>
+    <property id="field0" type="number">7</property>
+    <property id="field1" type="number">5</property>
+    <property id="field2" type="number">4</property>
+    <property id="field3" type="number">0</property>
+    <property id="bar0" type="number">1</property>
+    <property id="bar1" type="number">3</property>
+    <property id="bar2" type="number">2</property>
+    <property id="bar3" type="number">4</property>
+    <property id="timeStyle" type="number">0</property>
+    <property id="hourFormat" type="number">0</property>
+    <property id="city" type="number">0</property>
+    <property id="useCustomZone" type="boolean">false</property>
+    <property id="customOffset" type="number">0</property>
+    <property id="customLabel" type="string">UTC</property>
+    <property id="accent" type="number">0</property>
+</properties>
