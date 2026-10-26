@@ -3,6 +3,7 @@
         <settingConfig type="list">
             <listEntry value="0">@Strings.M0</listEntry>
             <listEntry value="1">@Strings.M1</listEntry>
+            <listEntry value="2">@Strings.M2</listEntry>
             <listEntry value="4">@Strings.M4</listEntry>
             <listEntry value="5">@Strings.M5</listEntry>
             <listEntry value="7">@Strings.M7</listEntry>
@@ -24,6 +25,7 @@
         <settingConfig type="list">
             <listEntry value="0">@Strings.M0</listEntry>
             <listEntry value="1">@Strings.M1</listEntry>
+            <listEntry value="2">@Strings.M2</listEntry>
             <listEntry value="4">@Strings.M4</listEntry>
             <listEntry value="5">@Strings.M5</listEntry>
             <listEntry value="7">@Strings.M7</listEntry>
@@ -45,6 +47,7 @@
         <settingConfig type="list">
             <listEntry value="0">@Strings.M0</listEntry>
             <listEntry value="1">@Strings.M1</listEntry>
+            <listEntry value="2">@Strings.M2</listEntry>
             <listEntry value="4">@Strings.M4</listEntry>
             <listEntry value="5">@Strings.M5</listEntry>
             <listEntry value="7">@Strings.M7</listEntry>

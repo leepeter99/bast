@@ -47,7 +47,7 @@ A segmented bar along the dial edge in one of four corners, showing one bar metr
 _Avoid_: Arc gauge, bezel, side field
 
 **Bar metric**:
-What a corner bar shows: Steps, Body Battery, Move alert, Recovery, Stress or Floors climbed. Stress is also a field. Every other bar metric is never a field, so it never relocates or hides behind the hands. Each one appears on at most one corner. Every bar reads full = good, so the Stress bar fills as the wearer calms.
+What a corner bar shows: Steps, Body Battery, Move alert, Recovery, Stress or Floors climbed. Stress and Recovery are also fields. Every other bar metric is never a field, so it never relocates or hides behind the hands. Each one appears on at most one corner. Every bar reads full = good, so the Stress bar fills as the wearer calms.
 _Avoid_: Field, side field
 
 **Move alert**:

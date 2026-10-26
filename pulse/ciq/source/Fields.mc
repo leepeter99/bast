@@ -35,9 +35,9 @@ module Fields {
         return v instanceof Number && v >= 0 && v < n ? v : dflt;
     }
 
-    // Metrics shown only on the corner bars, never as a gauge.
+    // Metrics shown only on the corner bars, never as a gauge. Stress and Recovery can be both.
     function fixed(id as Number) as Boolean {
-        return id == STEPS || id == BODY || id == MOVE || id == RECOVERY || id == FLOORS;
+        return id == STEPS || id == BODY || id == MOVE || id == FLOORS;
     }
 
     // The gauge at position i, falling back to its default for stale or bar-only values.

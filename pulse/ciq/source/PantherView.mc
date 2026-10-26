@@ -152,14 +152,6 @@ class PantherView extends WatchUi.WatchFace {
             dc.setColor((0x26 * v / 400) << 16 | (0x1b * v / 400) << 8 | 0x58 * v / 400, Graphics.COLOR_TRANSPARENT);
             dc.fillCircle(CX, CX, (21 - i) * 10 * S);
         }
-        // Faint light beam across the dial, as on the poster: halo, mid line, core, ending inside the ticks.
-        var bx = Math.sin(Math.PI * 44 / 180) * 196 * S, by = Math.cos(Math.PI * 44 / 180) * 196 * S;
-        var beam = [[0x1f1850, 12], [0x34297a, 5], [0x6c5cc4, 2]];
-        for (var i = 0; i < 3; i++) {
-            dc.setColor(beam[i][0] as Number, Graphics.COLOR_TRANSPARENT);
-            dc.setPenWidth(((beam[i][1] as Number) * S + 0.5).toNumber());
-            dc.drawLine(CX - bx, CX + by, CX + bx, CX - by);
-        }
         for (var i = 0; i < 60; i++) {
             var deg = i * 6, covered = false;
             for (var k = 0; k < 4; k++) {
@@ -343,6 +335,9 @@ class PantherView extends WatchUi.WatchFace {
             var heart = [[7, 13], [1, 7], [0, 3], [2, 0], [5, 0], [7, 3], [9, 0], [12, 0], [14, 3], [13, 7]];
             if (id == Fields.HEART) { dc.fillPolygon(offset(heart, ox, oy)); }
             else { poly(dc, heart, ox, oy, true); line(dc, ox, oy, 4, 7, 10, 7); }
+        } else if (id == Fields.RECOVERY) {
+            // Hourglass.
+            poly(dc, [[2, 0], [12, 0], [2, 13], [12, 13]], ox, oy, true);
         } else if (id == Fields.BATTERY) {
             dc.drawRectangle(ox, oy + 2, 12, 9);
             line(dc, ox, oy, 14, 5, 14, 8);
