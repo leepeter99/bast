@@ -65,13 +65,6 @@
             <listEntry value="21">@Strings.M21</listEntry>
         </settingConfig>
     </setting>
-    <setting propertyKey="@Properties.hourFormat" title="@Strings.HourFormat">
-        <settingConfig type="list">
-            <listEntry value="0">@Strings.H0</listEntry>
-            <listEntry value="1">@Strings.H1</listEntry>
-            <listEntry value="2">@Strings.H2</listEntry>
-        </settingConfig>
-    </setting>
     <setting propertyKey="@Properties.bar0" title="@Strings.Bar0">
         <settingConfig type="list">
             <listEntry value="0">@Strings.B0</listEntry>
@@ -114,6 +107,13 @@
             <listEntry value="4">@Strings.B4</listEntry>
             <listEntry value="5">@Strings.B5</listEntry>
             <listEntry value="6">@Strings.B6</listEntry>
+        </settingConfig>
+    </setting>
+    <setting propertyKey="@Properties.hourFormat" title="@Strings.HourFormat">
+        <settingConfig type="list">
+            <listEntry value="0">@Strings.H0</listEntry>
+            <listEntry value="1">@Strings.H1</listEntry>
+            <listEntry value="2">@Strings.H2</listEntry>
         </settingConfig>
     </setting>
     <setting propertyKey="@Properties.city" title="@Strings.City">
