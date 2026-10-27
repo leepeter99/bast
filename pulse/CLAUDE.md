@@ -4,37 +4,19 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this is
 
-An analog watch face for the Garmin Forerunner 965 (FR965), also built for FR970, fenix 8 and fenix 9 AMOLED models (geometry scales from the 454 px design by screen width), called "Panther / Expanding circles" (a purple Black Panther colour study). It has two parts: a design prototype in one self-contained file, `crossover_965_bast_pulse.html` (inline CSS, inline SVG, vanilla JS, no dependencies or build step), and the Connect IQ app in `ciq/`.
+Bast Pulse: an analog watch face for AMOLED Garmin watches (FR965, FR970, fenix 8 and fenix 9 AMOLED; see `ciq/manifest.xml`). Three gauges move out of the way of the hands; four corner bars run along the edge. The vocabulary is in `CONTEXT.md`, the decisions in `docs/adr/`. Read both before changing behaviour.
 
-The Connect IQ build lives in `ciq/` (Monkey C). It implements the decisions recorded in `CONTEXT.md` and `docs/adr/`; the HTML stays as the design prototype and is not kept in sync. The HTML predates the Chronos-style redesign (corner bars, ADR 0005; three fields on twelve slots, no Hybrid time style, ADRs 0006 and 0009), so it still shows the old chapter ring, four fields, and field types that are now bar-only. Build from the repo root (see the README): `monkeyc -d fr965 -f pulse/ciq/monkey.jungle -o pulse/ciq/bin/pulse.prg -y "$GARMIN_DEVELOPER_KEY" -w -l 3`. Keep `-l 3` (strict typing) clean. Layout test: add `-t`, then `monkeydo <prg> fr965 -t` with the simulator open.
+The app is the Connect IQ build in `ciq/` (Monkey C). `crossover_965_bast_pulse.html` is the original design prototype: it is stale (old chapter ring, four fields, eight slots) and not kept in sync. Don't use it as a reference for current behaviour.
 
-Run the prototype by opening the file in a browser. To check a change, drag the time slider through the full 12 hours, toggle Active/AOD, and turn "adaptive" on and off.
+## Build and test
 
-## Code style
+From the repo root: `monkeyc -d fr965 -f pulse/ciq/monkey.jungle -o pulse/ciq/bin/pulse.prg -y "$GARMIN_DEVELOPER_KEY" -w -l 3`. Keep `-l 3` (strict typing) clean. Tests (`ciq/source/LayoutTest.mc`): add `-t`, then `monkeydo <prg> fr965 -t` with the simulator open. They sweep two 12-hour cycles of the layout and check the recovery peak.
 
-The CSS and JS are hand-minified: dense one-liners with short names (`$`, `el`, `cs`, `p`). Edit them in the same style. Don't reformat the file or split it into several files unless asked.
+## Code layout (`ciq/source/`)
 
-## Architecture (inside the `<script>`)
+- **`Layout.mc`:** slot assignment and gauge sizing. Geometry is designed at 454 px and rescaled by `setup(width)`. `assign()` keeps a relocated field in place until its slot is blocked and checks the next minute too (ADR 0002, don't simplify it away). It picks relocation slots with the cheap `grow()`, because running the full `fit()` per candidate trips the watchdog on device.
+- **`Fields.mc`:** the data provider. `read(id)` returns `[text, progress 0..1 or null, caption or null]`, plus extras for some fields (steps count, weekday). Complications come first, direct APIs second (ADR 0001). A missing reading returns `--`. Settings are validated with `index()`, because phone values can be stale.
+- **`PantherView.mc`:** the renderer. Data is drawn first and the hands last. Layout and readings are cached per minute (heart rate refreshes every update). Ticks and bar tracks are drawn once into a buffered bitmap. Always-on mode draws only 1 px outlined hands, shifted each minute (ADR 0003). `tint()` recolours the purple theme to the accent.
+- **`FieldMenu.mc`:** the on-watch settings menus. They never offer a metric already used in the same group.
 
-- **Dial geometry:** SVG `viewBox` is 454×454, centred at (227,227). The inner dial edge is r=180. Hand lengths are hour=117 and minute=170. Angles are in degrees clockwise from 12 o'clock.
-- **Slots:** `slots` holds 8 positions on a ring of r=133. Positions 0/2/4/6 are the "home" positions top/right/bottom/left for the four chosen fields (`selectedFields` → `metricCatalog`).
-- **Layout engine:**
-  1. `blocked()` marks a slot unsafe if either hand passes within 60 of it (`handDistance` measures point-to-segment distance).
-  2. In `draw()`, each field keeps its home slot if that slot is safe. Otherwise it moves to the nearest free safe slot by circular index distance. If none is free, it gets -1 and is hidden.
-  3. `fitCircles()` grows each gauge from r=44, moving it toward the centre as it grows. Growth stops at the dial edge (180), at hand clearance (r+16) or at neighbour clearance (+7).
-  - Only the hour and minute hands trigger relocation; the seconds hand is ignored on purpose.
-- **Rendering:** `draw()` rebuilds `#metrics` on every change. `dataIcon()` draws each metric's icon, keyed by its label string (e.g. `'HEART RATE'`). If you add a metric, add matching entries to `metricCatalog`, all four `<select id="fieldN">` option lists and `dataIcon`.
-- **AOD:** `mode(true)` adds the `.aod` class to the SVG. That hides every `.active-only` group and dims the hands, leaving only the hour/minute hands and the hub.
-- **Second time zone:** `updateTravel()` treats the slider as Malaysia time (UTC+8) plus the `pm` checkbox and the chosen date. It converts that time with `Intl.DateTimeFormat` into `metricCatalog.zone`. `cityCodes` is the allowlist of zones.
-- **Persistence:** the chosen fields and the zone are saved in `localStorage` under the keys `panther-fields-circles` and `panther-travel-circles`, inside try/catch.
-- **Accent colour:** the `--accent` CSS variable; the colour selector changes it at runtime.
-
-## Target production design (from the in-page brief)
-
-The page describes a Monkey C version with four parts:
-- **WatchFace:** the lifecycle.
-- **DataProvider:** supplies the supported values.
-- **LayoutEngine:** tests measured text bounds against the hand geometry.
-- **Renderer:** draws the data first and the hands last.
-
-In that version, `onEnterSleep` switches to the analog-only renderer, and the layout is re-evaluated each minute and on wake. All metric values in the HTML are simulated. FR965 API support for recovery time, Body Battery, resting HR and weather has not been verified.
+Adding a metric means updating the `Fields` enum and `COUNT`, `read()`, the `M<n>` string, the `settings.xml` lists (gauge lists leave out bar-only metrics, see `Fields.fixed`), and `drawIcon`.

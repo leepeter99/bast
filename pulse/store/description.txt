@@ -21,7 +21,7 @@ Pick any three of:
 • Weekly run distance
 • Altitude
 • Barometric pressure
-• Second time zone: London, New York, Tokyo, Sydney, Singapore, Kuala Lumpur, Kolkata, Dubai or UTC, with daylight saving applied. You can also set a custom UTC offset with an optional 3-letter label.
+• Second time zone: London, New York, Tokyo, Sydney, Singapore, Kuala Lumpur, Kolkata, Dubai, Bangkok, Taipei or UTC, with daylight saving applied. You can also set a custom UTC offset with an optional 3-letter label.
 
 CORNER BARS
 Four bars run along the dial edge. Each one shows Steps, Body Battery, Move alert, Recovery, Stress or Floors climbed, or can be turned off. The fill always tracks the real value.
