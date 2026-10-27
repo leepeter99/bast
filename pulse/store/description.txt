@@ -1,4 +1,4 @@
-bast_pulse is an analog watch face for AMOLED Garmin watches with three data gauges that move out of the way of the hands, and four segmented corner bars along the edge for your daily progress.
+Bast Pulse is an analog watch face for AMOLED Garmin watches with three data gauges that move out of the way of the hands, and four segmented corner bars along the edge for your daily progress.
 
 GAUGES
 Three large circular gauges sit at the top, lower right and lower left of the dial. When the hour or minute hand passes over a gauge, it moves to the free spot where it can stay biggest, so the reading stays visible. If there is no room, the gauge hides until the hands move on. Each gauge grows as large as the hands and its neighbours allow, and its text grows with it. Fields with a natural range, such as watch battery, show a progress arc.

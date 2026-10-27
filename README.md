@@ -3,7 +3,7 @@
 Two watch-face designs for the Garmin Forerunner 965:
 
 - `pulse/`: browser prototype and Monkey C application in `pulse/ciq/`.
-- `shadow/`: browser prototype; no Connect IQ application yet.
+- `ingwe/`: Monkey C application in `ingwe/ciq/`.
 
 ## Development environment
 
@@ -124,10 +124,9 @@ From the repository root:
 python3 -m http.server 8000 --bind 127.0.0.1
 ```
 
-Open either:
+Open:
 
 - <http://127.0.0.1:8000/pulse/crossover_965_bast_pulse.html>
-- <http://127.0.0.1:8000/shadow/crossover_965_bast_shadow.html>
 
 For editor support, install Garmin's **Monkey C** extension in VS Code and open
 `pulse/ciq/`. Configure its developer key path to the same key used above.
