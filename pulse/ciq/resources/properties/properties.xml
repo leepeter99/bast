@@ -10,6 +10,6 @@
     <property id="city" type="number">0</property>
     <property id="useCustomZone" type="boolean">false</property>
     <property id="customOffset" type="number">0</property>
-    <property id="customLabel" type="string">UTC</property>
+    <property id="customLabel" type="string"></property>
     <property id="accent" type="number">0</property>
 </properties>

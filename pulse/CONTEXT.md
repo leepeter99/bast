@@ -39,7 +39,7 @@ The thin ring on a gauge's rim that fills to show a reading against its natural 
 _Avoid_: Ring fill, meter
 
 **Sun event**:
-What the Sunrise / Sunset field shows: the next sunrise or sunset today, or tomorrow's sunrise once the sun has set. Its caption reads RISE or SET.
+What the Sunrise / Sunset field shows: the next sunrise or sunset today, or tomorrow's sunrise once the sun has set. Its caption reads RISE or SET. Without both of today's times, which event is next is unknown, so the field is Unavailable.
 _Avoid_: Sunrise time, daylight
 
 **Corner bar**:
@@ -54,8 +54,12 @@ _Avoid_: Field, side field
 The bar metric for Garmin's inactivity warning. It reads as vibranium charge: full and purple, labelled "CHARGED" in white, when the wearer has moved recently, losing a segment and dimming for each step of idleness ("MOVE!"), drained to empty violet-outlined cells at the last step, and refilling at once, glowing white for a few minutes, when the wearer walks it off. While the alert is up, its words take a dimmed version of the hands' lilac: "MOVE!", or "KEEP GOING" while the wearer is walking.
 _Avoid_: Move bar (Garmin's name), inactivity, idle alert
 
+**Walking**:
+The wearer taking a minute's worth of steady steps while the Move alert is up, judged over the past minute only. After a stretch the face didn't see, the wearer is not walking until a full minute has been watched.
+_Avoid_: Moving, active
+
 **Recovery peak**:
-The highest recovery time seen since recovery last reached zero. The Recovery bar shows how much of the peak has been worked off.
+The highest recovery time seen since recovery last reached zero, or since the latest reading says it would have. A workout that tops recovery up below the peak keeps the peak, so the bar loses ground instead of starting over. The Recovery bar shows how much of the peak has been worked off.
 _Avoid_: Max recovery, baseline
 
 **Recharged**:

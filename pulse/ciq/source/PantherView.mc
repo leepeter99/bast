@@ -87,7 +87,7 @@ class PantherView extends WatchUi.WatchFace {
         // ADR 0003: no anti-aliasing in always-on mode, so edge pixels don't bleed across shifts.
         dc.setAntiAlias(!sleeping);
         var em = Time.now().value() / 60;
-        if (em != moveMin) { moveMin = em; trackMove(); }
+        if (em != moveMin) { trackMove(em - moveMin == 1); moveMin = em; }
         if (sleeping) {
             dc.setColor(Graphics.COLOR_BLACK, Graphics.COLOR_BLACK);
             dc.clear();
@@ -223,12 +223,13 @@ class PantherView extends WatchUi.WatchFace {
     }
 
     // Garmin exposes only the level, never its reset rule. Walking = enough steps in the last minute
-    // while the alert is up; a drop to 0 shows RESET for a few minutes.
-    function trackMove() as Void {
+    // while the alert is up, so only when the previous sample is exactly a minute old (fresh); a drop to 0
+    // shows RESET for a few minutes.
+    function trackMove(fresh as Boolean) as Void {
         var info = ActivityMonitor.getInfo(), lvl = info.moveBarLevel, st = info.steps, now = Time.now().value();
         if (lvl == null) { moveLevel = -1; return; }
         if (moveLevel > 0 && lvl == 0) { resetUntil = now + RESET_HOLD; }
-        walking = lvl > 0 && st != null && moveSteps != null && st - moveSteps >= WALKING_STEPS;
+        walking = fresh && lvl > 0 && st != null && moveSteps != null && st - moveSteps >= WALKING_STEPS;
         moveLevel = lvl;
         moveSteps = st;
     }
@@ -304,14 +305,15 @@ class PantherView extends WatchUi.WatchFace {
         dc.setColor(tint(0x1a1542), Graphics.COLOR_TRANSPARENT);
         dc.fillCircle(x, y, r - 5 * S);
         if (p != null) {
-            dc.setPenWidth(3);
+            var rr = r - 3 * S;
+            dc.setPenWidth((3 * S + 0.5).toNumber());
             dc.setColor(tint(TRACK), Graphics.COLOR_TRANSPARENT);
-            dc.drawCircle(x, y, r - 3);
+            dc.drawCircle(x, y, rr);
             dc.setColor(id == Fields.STRESS && p > 0.75 ? (accentIdx == AMBER ? 0xff5a5a : 0xff993d) : accent(), Graphics.COLOR_TRANSPARENT);
-            if (p >= 1) { dc.drawCircle(x, y, r - 3); }
+            if (p >= 1) { dc.drawCircle(x, y, rr); }
             else if (p > 0) {
                 var end = (90 - p * 360).toNumber();
-                dc.drawArc(x, y, r - 3, Graphics.ARC_CLOCKWISE, 90, end < 0 ? end + 360 : end);
+                dc.drawArc(x, y, rr, Graphics.ARC_CLOCKWISE, 90, end < 0 ? end + 360 : end);
             }
         }
         if (id == Fields.DATE) {

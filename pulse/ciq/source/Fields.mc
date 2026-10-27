@@ -60,19 +60,21 @@ module Fields {
     }
 
     // Share of the recovery peak worked off, 1.0 = recharged (ADR 0005). The peak is stored as
-    // [hours, set at]; one that has run out since it was set, or is below the reading, is replaced.
+    // [hours, projected zero]; a reading that ends later pushes the zero out, so a top-up keeps the peak.
+    // A peak whose zero has passed (recovery hit 0 while another face showed), or below the reading, is replaced.
+    // h is rounded up to whole hours, so the zero can run up to an hour late: allow that before expiring or pushing.
     function recovered(h as Number) as Float {
-        var now = Time.now().value(), saved = Application.Storage.getValue("recoveryPeak") as Array<Number>?;
+        var now = Time.now().value(), end = now + h * 3600, saved = Application.Storage.getValue("recoveryPeak") as Array<Number>?;
         if (h <= 0) {
             if (saved != null) { Application.Storage.deleteValue("recoveryPeak"); }
             return 1.0;
         }
-        var peak = saved == null || saved[0] < h || saved[1] + saved[0] * 3600 < now ? null : saved[0];
-        if (peak == null) {
-            peak = h;
-            Application.Storage.setValue("recoveryPeak", [h, now]);
+        if (saved == null || saved[0] < h || saved[1] + 3600 < now) {
+            Application.Storage.setValue("recoveryPeak", [h, end]);
+            return 0.0;
         }
-        return 1 - h.toFloat() / peak;
+        if (end > saved[1] + 3600) { Application.Storage.setValue("recoveryPeak", [saved[0], end]); }
+        return 1 - h.toFloat() / saved[0];
     }
 
     function str(id as ResourceId) as String { return WatchUi.loadResource(id) as String; }
@@ -157,13 +159,13 @@ module Fields {
             var mi = System.getDeviceSettings().distanceUnits == System.UNIT_STATUTE;
             return [(cm / (mi ? 160934.4 : 100000.0)).format("%.1f") + str(mi ? Rez.Strings.Miles : Rez.Strings.Km), null, null];
         } else if (id == SUNRISE) {
-            // Next sun event today, else tomorrow's sunrise. Both are seconds since local midnight.
+            // Next sun event today, else tomorrow's sunrise. Both are seconds since local midnight;
+            // without both, which one is next is unknown.
             var up = complication(Complications.COMPLICATION_TYPE_SUNRISE), down = complication(Complications.COMPLICATION_TYPE_SUNSET);
+            if (up == null || down == null) { return none; }
             var ct = System.getClockTime(), now = ct.hour * 3600 + ct.min * 60;
-            var rise = up != null && (down == null || now < up || now >= down);
-            var v = rise ? up : down;
-            if (v == null) { return none; }
-            var t = v.toNumber();
+            var rise = now < up || now >= down;
+            var t = (rise ? up : down).toNumber();
             return [hhmm(t / 3600 % 24, t / 60 % 60), null, str(rise ? Rez.Strings.Rise : Rez.Strings.Set)];
         } else if (id == FLOORS) {
             var info = ActivityMonitor.getInfo(), f = info.floorsClimbed, g = info.floorsClimbedGoal;
