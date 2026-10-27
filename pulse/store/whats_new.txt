@@ -1,5 +1,7 @@
-• Black Panther icons on every corner bar, with the number next to them.
-• Move alert is now vibranium charge: CHARGED when you've moved, MOVE! when you haven't.
-• Three larger gauges on twelve possible spots, so a gauge moves to wherever it can stay biggest.
-• Recovery time is now available as a gauge too.
-• The Hybrid time style is removed; the time is shown by the hands.
+• The accent colour now recolours the whole face, Move bar included.
+• Second time zone adds Bangkok and Taipei. A custom zone without a label shows its UTC offset.
+• Recovery bar no longer resets when your recovery time is topped up after a workout.
+• Move alert recharges more reliably when you walk it off.
+• Sunrise / Sunset shows "--" until both times are known.
+• Gauge progress rings scale properly on every screen size.
+• Hour format setting now sits before the second zone city.
