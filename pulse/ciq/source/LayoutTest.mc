@@ -43,6 +43,20 @@ function layoutSweep(logger as Logger) as Boolean {
     return true;
 }
 
+// Stale or bar-only gauges fall back without duplicating another gauge.
+(:test)
+function staleFieldFallback(logger as Logger) as Boolean {
+    Application.Properties.setValue("field0", Fields.BODY);
+    Application.Properties.setValue("field1", Fields.DATE);
+    Application.Properties.setValue("field2", 99);
+    // Top's default (Date) is taken, so it gets Heart rate; lower left's default (Heart rate) is then taken too.
+    Test.assertEqual(Fields.field(0), Fields.HEART);
+    Test.assertEqual(Fields.field(1), Fields.DATE);
+    Test.assertEqual(Fields.field(2), Fields.RESTING);
+    for (var i = 0; i < 3; i++) { Application.Properties.setValue("field" + i, Fields.DEFAULTS[i] as Number); }
+    return true;
+}
+
 // ADR 0005 recovery peak: top-up below the peak loses ground, above it resets, 0 h clears.
 (:test)
 function recoveryPeak(logger as Logger) as Boolean {
