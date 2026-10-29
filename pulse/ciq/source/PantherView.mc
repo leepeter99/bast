@@ -48,7 +48,7 @@ class PantherView extends WatchUi.WatchFace {
     var cachedMin as Number = -1;
     var fonts as Dictionary<Number, Graphics.VectorFont?> = {};
     var edgeRef as Graphics.BufferedBitmapReference?;
-    // Move alert state, sampled once a minute in both modes (ADR 0005). Level -1 = unavailable.
+    // Move alert state: level read every update, steps once a minute (ADR 0005). Level -1 = unavailable.
     var moveLevel as Number = -1;
     var moveSteps as Number? = null;
     var moveMin as Number = -1;
@@ -87,7 +87,8 @@ class PantherView extends WatchUi.WatchFace {
         // ADR 0003: no anti-aliasing in always-on mode, so edge pixels don't bleed across shifts.
         dc.setAntiAlias(!sleeping);
         var em = Time.now().value() / 60;
-        if (em != moveMin) { trackMove(em - moveMin == 1); moveMin = em; }
+        trackMove(em != moveMin, em - moveMin == 1);
+        moveMin = em;
         if (sleeping) {
             dc.setColor(Graphics.COLOR_BLACK, Graphics.COLOR_BLACK);
             dc.clear();
@@ -202,7 +203,8 @@ class PantherView extends WatchUi.WatchFace {
         }
     }
 
-    function segments(k as Number) as Number { return Fields.BAR_IDS[bars[k]] == Fields.MOVE ? 5 : 10; }
+    // Move alert keeps five cells (ADR 0007); every other bar is one smooth track.
+    function segments(k as Number) as Number { return Fields.BAR_IDS[bars[k]] == Fields.MOVE ? 5 : 1; }
 
     // Segment j of bar k, counted from the bar's fill end. 1 degree gap on each side.
     function drawSegment(dc as Dc, k as Number, j as Number, n as Number, col as Number) as Void {
@@ -211,6 +213,16 @@ class PantherView extends WatchUi.WatchFace {
         dc.setColor(col, Graphics.COLOR_TRANSPARENT);
         // Clockwise-from-12 to the Dc's counter-clockwise-from-3 degrees.
         dc.drawArc(CX, CX, BAR_R, Graphics.ARC_CLOCKWISE, (450 - a - idx * w - 1) % 360, (450 - a - (idx + 1) * w + 1) % 360);
+    }
+
+    // Smooth fill of bar k to fraction f, from its fill end. drawArc truncates to whole degrees.
+    function drawFill(dc as Dc, k as Number, f as Float, col as Number) as Void {
+        var a0 = SPANS[k][0] + 1, a1 = SPANS[k][1] - 1, len = ((f > 1 ? 1 : f) * (a1 - a0)).toNumber();
+        if (len < 1) { return; }
+        var from = FROM_START[k] ? a0 : a1 - len;
+        dc.setPenWidth((16 * S).toNumber());
+        dc.setColor(col, Graphics.COLOR_TRANSPARENT);
+        dc.drawArc(CX, CX, BAR_R, Graphics.ARC_CLOCKWISE, (450 - from) % 360, (450 - from - len) % 360);
     }
 
     // An empty cell: the segment in col with a black centre, leaving a rim about 3 px wide.
@@ -222,19 +234,22 @@ class PantherView extends WatchUi.WatchFace {
         dc.drawArc(CX, CX, BAR_R, Graphics.ARC_CLOCKWISE, (450 - a - idx * w - 2) % 360, (450 - a - (idx + 1) * w + 2) % 360);
     }
 
-    // Garmin exposes only the level, never its reset rule. Walking = enough steps in the last minute
-    // while the alert is up, so only when the previous sample is exactly a minute old (fresh); a drop to 0
-    // shows RESET for a few minutes.
-    function trackMove(fresh as Boolean) as Void {
-        var info = ActivityMonitor.getInfo(), lvl = info.moveBarLevel, st = info.steps, now = Time.now().value();
+    // Garmin exposes only the level, never its reset rule. The level is read every update, so the bar
+    // drops as soon as Garmin's own Move alert fires. Walking = enough steps in the last minute while the
+    // alert is up, so steps are sampled once a minute and only count when the previous sample is exactly
+    // a minute old (fresh); a drop to 0 shows RESET for a few minutes.
+    function trackMove(newMin as Boolean, fresh as Boolean) as Void {
+        var info = ActivityMonitor.getInfo(), lvl = info.moveBarLevel, st = info.steps;
         if (lvl == null) { moveLevel = -1; return; }
-        if (moveLevel > 0 && lvl == 0) { resetUntil = now + RESET_HOLD; }
-        walking = fresh && lvl > 0 && st != null && moveSteps != null && st - moveSteps >= WALKING_STEPS;
+        if (moveLevel > 0 && lvl == 0) { resetUntil = Time.now().value() + RESET_HOLD; }
+        if (newMin) {
+            walking = fresh && lvl > 0 && st != null && moveSteps != null && st - moveSteps >= WALKING_STEPS;
+            moveSteps = st;
+        }
         moveLevel = lvl;
-        moveSteps = st;
     }
 
-    // Lit segments and the label inside each bar. Every bar reads full = good, so Move drains.
+    // The fill (lit cells for Move) and the label inside each bar. Every bar reads full = good, so Move drains.
     function drawBars(dc as Dc, sec as Number) as Void {
         var f = font((24 * S).toNumber());
         for (var k = 0; k < 4; k++) {
@@ -242,14 +257,14 @@ class PantherView extends WatchUi.WatchFace {
             if (bars[k] == 0 || d == null) { continue; }
             var id = Fields.BAR_IDS[bars[k]] as Number, n = segments(k), p = d[1] as Float?, col = accent(), textCol = 0xf5f6f7, pulse = -1, hollow = false;
             var num = "" as String;
-            var lit = p == null ? 0 : (p * n).toNumber();
+            var lit = 0, fill = p == null ? 0.0 : p;
             if (id == Fields.STEPS) {
                 num = (d[(d.size() > 3 ? 3 : 0)] as Object).toString();
             } else if (id == Fields.BODY) {
                 num = d[0] as String;
             } else if (id == Fields.STRESS) {
                 // Full = calm, like the other bars.
-                lit = p == null ? 0 : ((1 - p) * n).toNumber();
+                fill = p == null ? 0.0 : 1 - p;
                 num = d[0] as String;
                 if (p != null && p > 0.75) { col = accentIdx == AMBER ? 0xff5a5a : 0xff993d; }
             } else if (id == Fields.FLOORS) {
@@ -278,6 +293,7 @@ class PantherView extends WatchUi.WatchFace {
             } else {
                 num = d[0] as String;
             }
+            if (id != Fields.MOVE) { drawFill(dc, k, fill, col); }
             for (var j = 0; j < lit && j < n; j++) { drawSegment(dc, k, j, n, col); }
             for (var j = 0; hollow && j < n; j++) { drawHollow(dc, k, j, n, col); }
             if (pulse >= 0) { drawSegment(dc, k, pulse, n, tint(GLOW)); }

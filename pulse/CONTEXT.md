@@ -43,7 +43,7 @@ What the Sunrise / Sunset field shows: the next sunrise or sunset today, or tomo
 _Avoid_: Sunrise time, daylight
 
 **Corner bar**:
-A segmented bar along the dial edge in one of four corners, showing one bar metric or turned off. Its fill always tracks the real value, and its label is the metric's icon followed by its number. Minute ticks show only where no corner bar is drawn.
+A bar along the dial edge in one of four corners, showing one bar metric or turned off. Its fill always tracks the real value: a smooth arc, or five cells for Move alert. Its label is the metric's icon followed by its number. Minute ticks show only where no corner bar is drawn.
 _Avoid_: Arc gauge, bezel, side field
 
 **Bar metric**:
@@ -79,7 +79,7 @@ _Avoid_: AOD (in prose), sleep mode, ambient
 ### Data
 
 **Unavailable**:
-The state of a field or bar metric whose reading is missing. It shows `--`; a field keeps its icon and slot, and a corner bar keeps its place with every segment dim.
+The state of a field or bar metric whose reading is missing. It shows `--`; a field keeps its icon and slot, and a corner bar keeps its place with its track dim.
 _Avoid_: Empty, error, no data
 
 **Second zone**:
