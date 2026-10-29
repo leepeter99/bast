@@ -2,7 +2,7 @@ import Toybox.Application;
 import Toybox.Lang;
 import Toybox.WatchUi;
 
-// On-watch settings: the three gauges and the four corner bars. A picker never offers
+// On-watch settings: the three gauges, the four corner bars and the accent. A picker never offers
 // a metric used elsewhere in its group, or a bar metric as a gauge.
 // If getSettingsView rejects Menu2InputDelegate on device, delete this file and the
 // getSettingsView override; phone settings plus the duplicate rules still apply.
@@ -14,11 +14,14 @@ function cornerName(k as Number) as String { return res([Rez.Strings.Bar0, Rez.S
 
 function barName(b as Number) as String { return res([Rez.Strings.B0, Rez.Strings.B1, Rez.Strings.B2, Rez.Strings.B3, Rez.Strings.B4, Rez.Strings.B5, Rez.Strings.B6][b] as ResourceId); }
 
+function accentName(a as Number) as String { return res([Rez.Strings.A0, Rez.Strings.A1, Rez.Strings.A2, Rez.Strings.A3, Rez.Strings.A4, Rez.Strings.A5][a] as ResourceId); }
+
 class FieldMenu extends WatchUi.Menu2 {
     function initialize() {
         Menu2.initialize({:title => res(Rez.Strings.Fields)});
         addItem(new WatchUi.MenuItem(res(Rez.Strings.Gauges), null, :gauges, {}));
         addItem(new WatchUi.MenuItem(res(Rez.Strings.CornerBars), null, :bars, {}));
+        addItem(new WatchUi.MenuItem(res(Rez.Strings.Accent), accentName(Fields.index(Application.Properties.getValue("accent"), 6, 0)), :accent, {}));
     }
 }
 
@@ -26,6 +29,12 @@ class FieldMenuDelegate extends WatchUi.Menu2InputDelegate {
     function initialize() { Menu2InputDelegate.initialize(); }
 
     function onSelect(item as WatchUi.MenuItem) as Void {
+        if (item.getId() == :accent) {
+            var list = new WatchUi.Menu2({:title => item.getLabel()});
+            for (var a = 0; a < 6; a++) { list.addItem(new WatchUi.MenuItem(accentName(a), null, a, {})); }
+            WatchUi.pushView(list, new PickDelegate("accent", item, :accent), WatchUi.SLIDE_LEFT);
+            return;
+        }
         var gauges = item.getId() == :gauges, menu = new WatchUi.Menu2({:title => item.getLabel()});
         for (var i = 0; i < (gauges ? 3 : 4); i++) {
             menu.addItem(gauges
@@ -76,7 +85,7 @@ class PickDelegate extends WatchUi.Menu2InputDelegate {
     function onSelect(item as WatchUi.MenuItem) as Void {
         var id = item.getId() as Number;
         Application.Properties.setValue(key, id);
-        parent.setSubLabel(kind == :gauge ? Fields.name(id) : barName(id));
+        parent.setSubLabel(kind == :gauge ? Fields.name(id) : kind == :bar ? barName(id) : accentName(id));
         getApp().onSettingsChanged();
         WatchUi.popView(WatchUi.SLIDE_RIGHT);
     }
