@@ -10,12 +10,14 @@ function sweep(fields as Array<Number>) as Void {
     Layout.setup(System.getDeviceSettings().screenWidth);
     var last = [0, 4, 8], sum = 0.0, low = 999.0;
     for (var t = 0; t < 1440; t++) {
-        var m = t % 720, now = Layout.blockedAt(m), next = Layout.blockedAt(m + 1);
-        var out = Layout.assign(m, fields, last), cs = Layout.fit(out, m);
+        var m = t % 720;
+        var out = Layout.assign(m, fields, last), cs = Layout.fit(out, fields, m);
         for (var i = 0; i < 3; i++) {
-            var s = out[i], was = last[i], home = Layout.HOMES[i];
+            var s = out[i], was = last[i], home = Layout.HOMES[i], f = Layout.floor(fields[i]);
+            var now = Layout.blockedAt(m, f), next = Layout.blockedAt(m + 1, f);
             Test.assertMessage(s >= 0, "gauge hidden at " + m);
             var c = cs[i] as Array<Float>;
+            Test.assertMessage(c[2] >= f - 0.01, "gauge below its floor at " + m);
             Test.assertMessage(Layout.clearance(c[0], c[1], m) >= c[2] + Layout.PAD, "gauge under a hand at " + m);
             sum += c[2]; if (c[2] < low) { low = c[2]; }
             for (var j = 0; j < i; j++) {

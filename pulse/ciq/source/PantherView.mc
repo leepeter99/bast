@@ -98,7 +98,7 @@ class PantherView extends WatchUi.WatchFace {
         if (m != cachedMin) {
             slots = Layout.assign(m, fields, last);
             last = slots;
-            circles = Layout.fit(slots, m);
+            circles = Layout.fit(slots, fields, m);
             for (var i = 0; i < 3; i++) { values[i] = Fields.read(fields[i]); }
             for (var i = 0; i < 4; i++) {
                 barValues[i] = bars[i] == 0 ? null : Fields.read(Fields.BAR_IDS[bars[i]] as Number);

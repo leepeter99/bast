@@ -19,7 +19,7 @@ A field's preferred slot: top, lower right or lower left. Each field has a diffe
 _Avoid_: Default position, direction
 
 **Blocked**:
-Describes a slot that the hour or minute hand passes too close to for a field to sit there. The seconds hand never blocks a slot.
+Describes a slot that the hour or minute hand passes too close to for a given field's gauge to sit there. A field with a larger minimum size is blocked sooner, so the same slot can be blocked for one field and free for another. The seconds hand never blocks a slot.
 _Avoid_: Obstructed, covered, unsafe
 
 **Relocation**:
@@ -33,6 +33,10 @@ _Avoid_: Dropped field, collapsed
 **Gauge**:
 The circle that shows one field's icon and value.
 _Avoid_: Badge, bubble, circle
+
+**Minimum size**:
+The smallest a gauge shrinks to when the hands or a neighbour crowd it. The Date gauge's minimum size is larger than the other fields', so it never shrinks as small as they can; it can still be smaller than a neighbour that has more room.
+_Avoid_: Floor, base radius
 
 **Progress arc**:
 The thin ring on a gauge's rim that fills to show a reading against its natural range. Only fields with such a range have one.
