@@ -1,7 +1,7 @@
-• The accent colour now recolours the whole face, Move bar included.
-• Second time zone adds Bangkok and Taipei. A custom zone without a label shows its UTC offset.
-• Recovery bar no longer resets when your recovery time is topped up after a workout.
-• Move alert recharges more reliably when you walk it off.
-• Sunrise / Sunset shows "--" until both times are known.
-• Gauge progress rings scale properly on every screen size.
-• Hour format setting now sits before the second zone city.
+• Corner bars fill smoothly instead of in steps. Move alert keeps its five charge segments.
+• Move alert follows your accent colour and shows DRAINED when it runs empty, with the first segment gently glowing.
+• Accent colour can now be changed on the watch as well as in the phone app.
+• Move alert drops as soon as Garmin's own move alert fires.
+• The Date gauge stays larger, so the weekday ring is easier to read.
+• A gauge left on a metric that's no longer offered now falls back to one that isn't already showing, instead of disappearing.
+• Hands, hub and gauge icons are sized correctly on every screen size.
