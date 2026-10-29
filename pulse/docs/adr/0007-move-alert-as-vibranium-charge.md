@@ -1,5 +1,7 @@
 # Move alert as vibranium charge
 
+_The drained look at level 5 is superseded by ADR 0013._
+
 This supersedes the Move alert colours in ADR 0005. The bar still drains one segment per idle level, but it now reads as stored vibranium charge instead of a warning light. At level 0 all five segments are vibranium purple and the label reads "CHARGED". Each idle level removes a segment and dims the rest toward deep violet. At level 5 the bar is drained: all five segments are empty, black cells with electric violet outlines. During any alert, from level 1, the words take a dimmed version of the hands' lilac; the mask keeps the accent colour like the other bar icons. While the wearer walks it off, one white segment runs along the empty part of the bar each second, showing absorbed energy. After the level drops to 0, the full bar glows white for 5 minutes, then it returns to purple. The label reads "CHARGED" in white, like the other bars, whenever no alert is up.
 
 ## Consequences

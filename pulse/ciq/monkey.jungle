@@ -2,3 +2,4 @@ project.manifest = manifest.xml
 fenix843mm.resourcePath = $(fenix843mm.resourcePath);resources-60
 fenix9pro43mm.resourcePath = $(fenix9pro43mm.resourcePath);resources-60
 fenix943mm.resourcePath = $(fenix943mm.resourcePath);resources-60
+base.excludeAnnotations = demo
