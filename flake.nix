@@ -117,7 +117,7 @@
       devShells.${system}.default = pkgs.mkShell {
         packages = [
           pkgs.openssl # developer key
-          pkgs.python3 # browser preview server
+          (pkgs.python3.withPackages (p: [ p.pillow ])) # browser preview server, store images
           pkgs.unzip # SDK Manager archive
           pkgs.go-mtpfs # sideload to the watch
           garminRuntime
