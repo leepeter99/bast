@@ -26,7 +26,8 @@ class PantherView extends WatchUi.WatchFace {
     // Move alert as vibranium charge by level 0-5: purple when charged, dimmer per idle level, then drained:
     // five empty cells outlined in electric violet, the alarm colour. GLOW is the hands' lilac: a fresh recharge and absorbed energy.
     // ALERT is that lilac's hue, dimmed for the alert words so they don't outshine the face.
-    const CHARGE = [0x9d7bff, 0x8c68f5, 0x7a55e8, 0x6845d8, 0x5a38c8, 0xc44dff];
+    const CHARGE = [0x9d7bff, 0x8c68f5, 0x7a55e8, 0x6845d8, 0x5a38c8];
+    const BREATH = [0.3, 0.55, 0.8, 0.55];  // drained Move: the first cell's brightness, one step per second
     const GLOW = 0xe9e3ff;
     const ALERT = 0x9585e6;
     const SHIFTS = [[0, 0], [2, 0], [2, 2], [0, 2]];
@@ -83,11 +84,12 @@ class PantherView extends WatchUi.WatchFace {
     function onExitSleep() as Void { sleeping = false; cachedMin = -1; WatchUi.requestUpdate(); }
 
     function onUpdate(dc as Dc) as Void {
-        var ct = System.getClockTime(), m = (ct.hour % 12) * 60 + ct.min;
+        var ct = clock(), m = (ct[0] % 12) * 60 + ct[1];
         // ADR 0003: no anti-aliasing in always-on mode, so edge pixels don't bleed across shifts.
         dc.setAntiAlias(!sleeping);
         var em = Time.now().value() / 60;
         trackMove(em != moveMin, em - moveMin == 1);
+        demoMove();
         moveMin = em;
         if (sleeping) {
             dc.setColor(Graphics.COLOR_BLACK, Graphics.COLOR_BLACK);
@@ -99,29 +101,45 @@ class PantherView extends WatchUi.WatchFace {
             slots = Layout.assign(m, fields, last);
             last = slots;
             circles = Layout.fit(slots, fields, m);
-            for (var i = 0; i < 3; i++) { values[i] = Fields.read(fields[i]); }
+            for (var i = 0; i < 3; i++) { values[i] = read(fields[i]); }
             for (var i = 0; i < 4; i++) {
-                barValues[i] = bars[i] == 0 ? null : Fields.read(Fields.BAR_IDS[bars[i]] as Number);
+                barValues[i] = bars[i] == 0 ? null : read(Fields.BAR_IDS[bars[i]] as Number);
             }
             cachedMin = m;
         }
         dc.drawBitmap(0, 0, edge());
-        drawBars(dc, ct.sec);
+        drawBars(dc, ct[2]);
         for (var i = 0; i < 3; i++) {
             if (slots[i] < 0) { continue; }
-            if (fields[i] == Fields.HEART) { values[i] = Fields.read(Fields.HEART); }
+            if (fields[i] == Fields.HEART) { values[i] = read(Fields.HEART); }
             drawGauge(dc, fields[i], circles[i] as Array<Float>, values[i] as Array);
         }
         var hs = Layout.hands(m);
         drawHand(dc, HOUR, hs[0][0], CX, CX, true);
         drawHand(dc, MINUTE, hs[1][0], CX, CX, true);
-        drawSeconds(dc, ct.sec * 6.0);
+        drawSeconds(dc, ct[2] * 6.0);
         dc.setColor(tint(0xe9e3ff), Graphics.COLOR_TRANSPARENT);
         dc.fillCircle(CX, CX, 10 * S);
         dc.setColor(tint(0x2a1f5c), Graphics.COLOR_TRANSPARENT);
         dc.setPenWidth((4 * S + 0.5).toNumber());
         dc.drawCircle(CX, CX, 10 * S);
     }
+
+    // Store demo build (demo.jungle, used for store images): fixed time and flattering readings.
+    // The normal build keeps the real clock and data.
+    (:nodemo) function clock() as Array<Number> { var c = System.getClockTime(); return [c.hour, c.min, c.sec] as Array<Number>; }
+    (:nodemo) function read(id as Number) as Array { return Fields.read(id); }
+    (:nodemo) function demoMove() as Void {}
+
+    (:demo) function clock() as Array<Number> { return [10, 8, 36] as Array<Number>; }
+    (:demo) function read(id as Number) as Array {
+        if (id == Fields.HEART) { return ["62", null, null]; }
+        if (id == Fields.BODY) { return ["86", 0.86, null]; }
+        if (id == Fields.STEPS) { return ["8.4k", 0.84, null, 8432]; }
+        if (id == Fields.RECOVERY) { return ["5h", 0.7, null]; }
+        return Fields.read(id);
+    }
+    (:demo) function demoMove() as Void { moveLevel = 0; resetUntil = 0; walking = false; }
 
     function accent() as Number { return ACCENTS[accentIdx] as Number; }
 
@@ -139,12 +157,20 @@ class PantherView extends WatchUi.WatchFace {
         return out;
     }
 
+    // a blended toward b by f (0 = a, 1 = b).
+    function mix(a as Number, b as Number, f as Float) as Number {
+        var out = 0;
+        for (var sh = 16; sh >= 0; sh -= 8) {
+            var x = (a >> sh) & 0xff;
+            out = out << 8 | (x + (((b >> sh) & 0xff) - x) * f).toNumber();
+        }
+        return out;
+    }
+
     function dim(c as Number, f as Float) as Number {
         return (((c >> 16) & 0xff) * f).toNumber() << 16 | (((c >> 8) & 0xff) * f).toNumber() << 8 | ((c & 0xff) * f).toNumber();
     }
 
-    // The drained-Move alarm: violet on the purple accents, otherwise orange (red on amber).
-    function alarm() as Number { return accentIdx < 3 ? CHARGE[5] as Number : accentIdx == AMBER ? 0xff5a5a : 0xff993d; }
 
     // Ticks and bar tracks only change with settings, so they are drawn once. The graphics pool may purge it.
     function edge() as Graphics.BufferedBitmap {
@@ -225,15 +251,6 @@ class PantherView extends WatchUi.WatchFace {
         dc.drawArc(CX, CX, BAR_R, Graphics.ARC_CLOCKWISE, (450 - from) % 360, (450 - from - len) % 360);
     }
 
-    // An empty cell: the segment in col with a black centre, leaving a rim about 3 px wide.
-    function drawHollow(dc as Dc, k as Number, j as Number, n as Number, col as Number) as Void {
-        var a = SPANS[k][0], w = (SPANS[k][1] - a) / n, idx = FROM_START[k] ? j : n - 1 - j;
-        drawSegment(dc, k, j, n, col);
-        dc.setPenWidth((10 * S).toNumber());
-        dc.setColor(Graphics.COLOR_BLACK, Graphics.COLOR_TRANSPARENT);
-        dc.drawArc(CX, CX, BAR_R, Graphics.ARC_CLOCKWISE, (450 - a - idx * w - 2) % 360, (450 - a - (idx + 1) * w + 2) % 360);
-    }
-
     // Garmin exposes only the level, never its reset rule. The level is read every update, so the bar
     // drops as soon as Garmin's own Move alert fires. Walking = enough steps in the last minute while the
     // alert is up, so steps are sampled once a minute and only count when the previous sample is exactly
@@ -255,7 +272,7 @@ class PantherView extends WatchUi.WatchFace {
         for (var k = 0; k < 4; k++) {
             var d = barValues[k] as Array?;
             if (bars[k] == 0 || d == null) { continue; }
-            var id = Fields.BAR_IDS[bars[k]] as Number, n = segments(k), p = d[1] as Float?, col = accent(), textCol = 0xf5f6f7, pulse = -1, hollow = false;
+            var id = Fields.BAR_IDS[bars[k]] as Number, n = segments(k), p = d[1] as Float?, col = accent(), textCol = 0xf5f6f7, pulse = -1, pulseCol = tint(GLOW);
             var num = "" as String;
             var lit = 0, fill = p == null ? 0.0 : p;
             if (id == Fields.STEPS) {
@@ -280,12 +297,14 @@ class PantherView extends WatchUi.WatchFace {
                 } else {
                     var lv = moveLevel < n ? moveLevel : n;
                     lit = n - lv;
-                    col = lv == 5 ? alarm() : accentIdx == 0 ? CHARGE[lv] as Number : dim(accent(), 1.0 - lv * 0.1);
+                    col = accentIdx == 0 ? CHARGE[lv < 5 ? lv : 4] as Number : dim(accent(), 1.0 - lv * 0.1);
                     textCol = tint(ALERT);
-                    hollow = lit == 0;
-                    num = Fields.str(walking ? Rez.Strings.KeepGoing : Rez.Strings.MoveAlert) + " " + moveLevel + "/5";
+                    num = !walking && lit == 0 ? Fields.str(Rez.Strings.Drained)
+                        : Fields.str(walking ? Rez.Strings.KeepGoing : Rez.Strings.MoveAlert) + " " + moveLevel + "/5";
                     // Walking it off: absorbed energy runs along the empty segments, one per second in high-power mode.
+                    // Drained: the cells show the bare track and the first one breathes in the accent.
                     if (walking) { pulse = lit + sec % (n - lit); }
+                    else if (lit == 0) { pulse = 0; pulseCol = mix(tint(TRACK), accent(), BREATH[sec % 4] as Float); }
                 }
             } else if (p != null && p >= 1) {
                 num = Fields.str(Rez.Strings.Recharged);
@@ -295,8 +314,7 @@ class PantherView extends WatchUi.WatchFace {
             }
             if (id != Fields.MOVE) { drawFill(dc, k, fill, col); }
             for (var j = 0; j < lit && j < n; j++) { drawSegment(dc, k, j, n, col); }
-            for (var j = 0; hollow && j < n; j++) { drawHollow(dc, k, j, n, col); }
-            if (pulse >= 0) { drawSegment(dc, k, pulse, n, tint(GLOW)); }
+            if (pulse >= 0) { drawSegment(dc, k, pulse, n, pulseCol); }
             // Icon, then the number, centred on the bar's middle along the label arc. The icon turns with the
             // arc so it stands upright beside the text, which reads clockwise on top and counter-clockwise below.
             // ponytail: text width estimated at 0.5 em per glyph; measure it if labels look off-centre.
