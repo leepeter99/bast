@@ -41,10 +41,26 @@ module Fields {
         return id == STEPS || id == BODY || id == MOVE || id == FLOORS;
     }
 
-    // The gauge at position i, falling back to its default for stale or bar-only values.
+    // The gauge id stored for position i, or -1 when stale or bar-only.
+    function stored(i as Number) as Number {
+        var v = index(Application.Properties.getValue("field" + i), COUNT, -1);
+        return fixed(v) ? -1 : v;
+    }
+
+    // The gauge at position i. A stale or bar-only value falls back to its default, or to the first metric
+    // no other position uses, so the fallback never duplicates (and so hides) another gauge.
     function field(i as Number) as Number {
-        var v = index(Application.Properties.getValue("field" + i), COUNT, DEFAULTS[i]);
-        return fixed(v) ? DEFAULTS[i] : v;
+        var v = stored(i);
+        if (v >= 0) { return v; }
+        var others = [] as Array<Number>;
+        for (var j = 0; j < 3; j++) {
+            if (j != i) { others.add(j < i ? field(j) : stored(j)); }
+        }
+        for (var k = -1; k < COUNT; k++) {
+            var id = k < 0 ? DEFAULTS[i] as Number : k;
+            if (!fixed(id) && others.indexOf(id) < 0) { return id; }
+        }
+        return DEFAULTS[i] as Number;
     }
 
     // Bar option per corner. A metric already on an earlier corner (UL, UR, LL, LR) turns the later one Off.

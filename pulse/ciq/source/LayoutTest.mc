@@ -10,12 +10,14 @@ function sweep(fields as Array<Number>) as Void {
     Layout.setup(System.getDeviceSettings().screenWidth);
     var last = [0, 4, 8], sum = 0.0, low = 999.0;
     for (var t = 0; t < 1440; t++) {
-        var m = t % 720, now = Layout.blockedAt(m), next = Layout.blockedAt(m + 1);
-        var out = Layout.assign(m, fields, last), cs = Layout.fit(out, m);
+        var m = t % 720;
+        var out = Layout.assign(m, fields, last), cs = Layout.fit(out, fields, m);
         for (var i = 0; i < 3; i++) {
-            var s = out[i], was = last[i], home = Layout.HOMES[i];
+            var s = out[i], was = last[i], home = Layout.HOMES[i], f = Layout.floor(fields[i]);
+            var now = Layout.blockedAt(m, f), next = Layout.blockedAt(m + 1, f);
             Test.assertMessage(s >= 0, "gauge hidden at " + m);
             var c = cs[i] as Array<Float>;
+            Test.assertMessage(c[2] >= f - 0.01, "gauge below its floor at " + m);
             Test.assertMessage(Layout.clearance(c[0], c[1], m) >= c[2] + Layout.PAD, "gauge under a hand at " + m);
             sum += c[2]; if (c[2] < low) { low = c[2]; }
             for (var j = 0; j < i; j++) {
@@ -40,6 +42,20 @@ function sweep(fields as Array<Number>) as Void {
 function layoutSweep(logger as Logger) as Boolean {
     sweep([7, 4, 0]);
     Test.assertEqual(Layout.assign(0, [5, 5, 0], [0, 4, 8])[1], -1);
+    return true;
+}
+
+// Stale or bar-only gauges fall back without duplicating another gauge.
+(:test)
+function staleFieldFallback(logger as Logger) as Boolean {
+    Application.Properties.setValue("field0", Fields.BODY);
+    Application.Properties.setValue("field1", Fields.DATE);
+    Application.Properties.setValue("field2", 99);
+    // Top's default (Date) is taken, so it gets Heart rate; lower left's default (Heart rate) is then taken too.
+    Test.assertEqual(Fields.field(0), Fields.HEART);
+    Test.assertEqual(Fields.field(1), Fields.DATE);
+    Test.assertEqual(Fields.field(2), Fields.RESTING);
+    for (var i = 0; i < 3; i++) { Application.Properties.setValue("field" + i, Fields.DEFAULTS[i] as Number); }
     return true;
 }
 

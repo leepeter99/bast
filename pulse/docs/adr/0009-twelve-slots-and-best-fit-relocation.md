@@ -5,6 +5,6 @@ This supersedes the six-slot ring in ADR 0006. The ring now has twelve slots, on
 ## Consequences
 
 - Taking a slot also closes both neighbours, so gauges are always at least two slots (133 px) apart and never overlap at r 53.
-- Across a full 24 hours, the mean gauge radius rises from 67.4 to 71.8 px at 454 px. The minimum is still 53. The layout test now checks that gauges never overlap and prints these figures.
+- Across a full 24 hours, the mean gauge radius rises from 67.4 to 71.8 px at 454 px. The minimum is still 53 (ADR 0012 later raised it to 64 for the Date gauge). The layout test now checks that gauges never overlap and prints these figures.
 - Candidate slots are scored with `Layout.grow`, a 6-step binary search per gauge, not the full `fit`. Running `fit` once per candidate tripped the device watchdog in the simulator. The new code ran in the simulator across about 120 different minutes without tripping it.
 - Stored `last` slots from before the change are numbered for six slots. They are read as slots on the twelve-slot ring, so the first update after an upgrade may move a gauge once.

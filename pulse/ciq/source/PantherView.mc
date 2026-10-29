@@ -98,7 +98,7 @@ class PantherView extends WatchUi.WatchFace {
         if (m != cachedMin) {
             slots = Layout.assign(m, fields, last);
             last = slots;
-            circles = Layout.fit(slots, m);
+            circles = Layout.fit(slots, fields, m);
             for (var i = 0; i < 3; i++) { values[i] = Fields.read(fields[i]); }
             for (var i = 0; i < 4; i++) {
                 barValues[i] = bars[i] == 0 ? null : Fields.read(Fields.BAR_IDS[bars[i]] as Number);
@@ -119,7 +119,7 @@ class PantherView extends WatchUi.WatchFace {
         dc.setColor(tint(0xe9e3ff), Graphics.COLOR_TRANSPARENT);
         dc.fillCircle(CX, CX, 10 * S);
         dc.setColor(tint(0x2a1f5c), Graphics.COLOR_TRANSPARENT);
-        dc.setPenWidth(4);
+        dc.setPenWidth((4 * S + 0.5).toNumber());
         dc.drawCircle(CX, CX, 10 * S);
     }
 
@@ -348,7 +348,7 @@ class PantherView extends WatchUi.WatchFace {
         }
         // Icon, value, then the optional second line, stacked like the Chronos subdials.
         var sub = d[2] != null;
-        drawIcon(dc, id, x, y - r * (sub ? 0.62 : 0.55) + 3, S, 0.0, accent(), tint(0x1a1542));
+        drawIcon(dc, id, x, y - r * (sub ? 0.62 : 0.55) + 3 * S, S, 0.0, accent(), tint(0x1a1542));
         var size = r * (sub ? 0.56 : 0.64) / S, fitSize = r * 1.5 / S / (value.length() * 0.62);
         dc.setColor(0xf5f6f7, Graphics.COLOR_TRANSPARENT);
         // Even sizes only, to bound the font cache.
@@ -369,7 +369,7 @@ class PantherView extends WatchUi.WatchFace {
             dc.setColor(tint(0xe9e3ff), Graphics.COLOR_TRANSPARENT);
             dc.fillPolygon(pts);
             dc.setColor(tint(0x2e2370), Graphics.COLOR_TRANSPARENT);
-            dc.setPenWidth(3);
+            dc.setPenWidth((3 * S + 0.5).toNumber());
         } else {
             dc.setColor(tint(0x8a80c0), Graphics.COLOR_TRANSPARENT);
             dc.setPenWidth(1);
@@ -383,7 +383,7 @@ class PantherView extends WatchUi.WatchFace {
     function drawSeconds(dc as Dc, deg as Float) as Void {
         var a = deg * Math.PI / 180, s = Math.sin(a), c = Math.cos(a);
         dc.setColor(accent(), Graphics.COLOR_TRANSPARENT);
-        dc.setPenWidth(2);
+        dc.setPenWidth((2 * S + 0.5).toNumber());
         dc.drawLine(CX - s * 25 * S, CX + c * 25 * S, CX + s * 184 * S, CX - c * 184 * S);
         dc.setColor(tint(0x0a0820), Graphics.COLOR_TRANSPARENT);
         dc.fillCircle(CX - s * 20 * S, CX + c * 20 * S, 4 * S);
