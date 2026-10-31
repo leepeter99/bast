@@ -1,4 +1,4 @@
-• New Air quality gauge: shows the AQI from the Atmos Air Quality app, coloured green to maroon by US AQI category. Press and hold it to open Atmos, on watches that support it.
+• New Air quality gauge: shows the AQI from the Atmos Air Quality app with its US AQI category, Good to Hazardous, in the category colour. Press and hold it to open Atmos, on watches that support it.
 • Corner bars fill smoothly and brighten as they fill. Steps, Floors climbed and Recovery shine briefly when they reach their goal.
 • Move alert shows how idle you are (MOVE! 3/5), KEEP GOING while you walk it off, and DRAINED at the last step.
 • Body Battery shows REST below 10%, and its bar breathes when nearly empty.

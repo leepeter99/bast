@@ -21,7 +21,7 @@ Pick any three of:
 • Weekly run distance
 • Altitude
 • Barometric pressure
-• Air quality, from the Atmos Air Quality app (install it separately and set it to the US scale). Coloured by US AQI category; press and hold to open the app.
+• Air quality, from the Atmos Air Quality app (install it separately and set it to the US scale). Shows the US AQI category, Good to Hazardous, in its colour; press and hold to open the app.
 • Second time zone: London, New York, Tokyo, Sydney, Singapore, Kuala Lumpur, Kolkata, Dubai, Bangkok, Taipei or UTC, with daylight saving applied. You can also set a custom UTC offset with an optional 3-letter label.
 
 CORNER BARS
