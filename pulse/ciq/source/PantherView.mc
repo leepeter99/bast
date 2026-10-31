@@ -145,12 +145,35 @@ class PantherView extends WatchUi.WatchFace {
         if (id == Fields.BODY) { return ["86", 0.86, null]; }
         if (id == Fields.STEPS) { return ["8.4k", 0.84, null, 8432]; }
         if (id == Fields.RECOVERY) { return ["5h", 0.7, null]; }
-        if (id == Fields.AIR) { return ["42", null, Fields.str(Rez.Strings.Aqi0), 0]; }
+        if (id == Fields.BATTERY) { return ["78%", 0.78, null]; }
+        if (id == Fields.STRESS) { return ["24", 0.24, null]; }
+        if (id == Fields.WEATHER) { return ["24°", null, "18°|27°"]; }
+        if (id == Fields.SUNRISE) { return ["18:52", null, Fields.str(Rez.Strings.Set)]; }
+        if (id == Fields.ZONE) { return ["11:08", null, "TYO"]; }
+        if (id == Fields.AIR) {
+            var sc = SCENES[scene()] as Array, k = sc[3] as Number;
+            return [(sc[2] as Number).toString(), null, Fields.str([Rez.Strings.Aqi0, Rez.Strings.Aqi1, Rez.Strings.Aqi2][k] as ResourceId), k];
+        }
         return Fields.read(id);
     }
-    (:demo) function demoMove() as Void { moveLevel = 0; resetUntil = 0; walking = false; }
-    // Shows off the Air quality gauge in place of Weather.
-    (:demo) function gauge(i as Number) as Number { return [Fields.DATE, Fields.AIR, Fields.HEART][i] as Number; }
+    // Store screenshots: one scene per 20 s from launch, so one run gives several. [accent, gauges, Air AQI, its category]
+    (:demo) const SCENES = [
+        [0, [Fields.DATE, Fields.AIR, Fields.HEART], 42, 0],
+        [3, [Fields.ZONE, Fields.AIR, Fields.RECOVERY], 78, 1],
+        [4, [Fields.SUNRISE, Fields.BATTERY, Fields.STRESS], 0, 0],
+        [5, [Fields.DATE, Fields.WEATHER, Fields.AIR], 125, 2]
+    ];
+    (:demo) var demoStart as Number = -1;
+    (:demo) var shown as Number = 0;
+    (:demo) function scene() as Number { return demoStart < 0 ? 0 : (System.getTimer() - demoStart) / 20000 % SCENES.size(); }
+    (:demo) function demoMove() as Void {
+        moveLevel = 0; resetUntil = 0; walking = false;
+        if (demoStart < 0) { demoStart = System.getTimer(); }
+        var s = scene();
+        if (s != shown) { shown = s; loadSettings(); }
+        accentIdx = (SCENES[s] as Array)[0] as Number;
+    }
+    (:demo) function gauge(i as Number) as Number { return ((SCENES[scene()] as Array)[1] as Array)[i] as Number; }
 
     function accent() as Number { return ACCENTS[accentIdx] as Number; }
 
@@ -537,10 +560,12 @@ class PantherView extends WatchUi.WatchFace {
         } else if (id == Fields.PRESSURE) {
             ci(dc, 8, 8, 7, false); pl(dc, [[8, 8], [12, 4]], false); ci(dc, 8, 8, 1.5, true);
         } else if (id == Fields.AIR) {
-            // Lungs drawing breath: two solid lobes off the windpipe.
-            pl(dc, [[8, 0], [8, 7]], false); pl(dc, [[8, 7], [5, 9]], false); pl(dc, [[8, 7], [11, 9]], false);
-            fp(dc, [[6, 3], [3, 4], [1, 8], [0, 13], [1, 16], [6, 15], [6, 10]]);
-            fp(dc, [[10, 3], [13, 4], [15, 8], [16, 13], [15, 16], [10, 15], [10, 10]]);
+            // Airflow: three long, gentle swells, one per line, unlike Respiration's straight, flicked lines.
+            for (var wy = 3; wy <= 13; wy += 5) {
+                var wp = [] as Array;
+                for (var wx = 0; wx <= 16; wx += 2) { wp.add([wx, wy - 1.5 * Math.sin(wx * Math.PI / 8)]); }
+                pl(dc, wp, false);
+            }
         }
     }
 
