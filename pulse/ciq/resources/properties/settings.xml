@@ -19,6 +19,7 @@
             <listEntry value="19">@Strings.M19</listEntry>
             <listEntry value="20">@Strings.M20</listEntry>
             <listEntry value="21">@Strings.M21</listEntry>
+            <listEntry value="22">@Strings.M22</listEntry>
         </settingConfig>
     </setting>
     <setting propertyKey="@Properties.field1" title="@Strings.LowerRight">
@@ -41,6 +42,7 @@
             <listEntry value="19">@Strings.M19</listEntry>
             <listEntry value="20">@Strings.M20</listEntry>
             <listEntry value="21">@Strings.M21</listEntry>
+            <listEntry value="22">@Strings.M22</listEntry>
         </settingConfig>
     </setting>
     <setting propertyKey="@Properties.field2" title="@Strings.LowerLeft">
@@ -63,6 +65,7 @@
             <listEntry value="19">@Strings.M19</listEntry>
             <listEntry value="20">@Strings.M20</listEntry>
             <listEntry value="21">@Strings.M21</listEntry>
+            <listEntry value="22">@Strings.M22</listEntry>
         </settingConfig>
     </setting>
     <setting propertyKey="@Properties.bar0" title="@Strings.Bar0">

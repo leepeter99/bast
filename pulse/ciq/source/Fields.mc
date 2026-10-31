@@ -14,8 +14,8 @@ import Toybox.WatchUi;
 // DataProvider (ADR 0001): complications first, direct APIs otherwise.
 // read() returns [text, progress 0..1 or null, caption or null]. Missing data shows "--" (Unavailable).
 module Fields {
-    enum { HEART, RESTING, RECOVERY, BODY, WEATHER, BATTERY, STEPS, DATE, CALORIES, DISTANCE, SUNRISE, STRESS, ZONE, MOVE, FLOORS, PULSEOX, RESP, HILOW, BIKE, RUN, ALTITUDE, PRESSURE }
-    const COUNT = 22;
+    enum { HEART, RESTING, RECOVERY, BODY, WEATHER, BATTERY, STEPS, DATE, CALORIES, DISTANCE, SUNRISE, STRESS, ZONE, MOVE, FLOORS, PULSEOX, RESP, HILOW, BIKE, RUN, ALTITUDE, PRESSURE, AIR }
+    const COUNT = 23;
     // Gauge defaults per position (top, lower right, lower left).
     const DEFAULTS = [DATE, WEATHER, HEART];
     // Corner bar options: Off, Steps, Body Battery, Move, Recovery, Stress, Floors (ADR 0005).
@@ -100,8 +100,24 @@ module Fields {
             Rez.Strings.M0, Rez.Strings.M1, Rez.Strings.M2, Rez.Strings.M3, Rez.Strings.M4, Rez.Strings.M5, Rez.Strings.M6,
             Rez.Strings.M7, Rez.Strings.M8, Rez.Strings.M9, Rez.Strings.M10, Rez.Strings.M11, Rez.Strings.M12, Rez.Strings.M13,
             Rez.Strings.M14, Rez.Strings.M15, Rez.Strings.M16, Rez.Strings.M17, Rez.Strings.M18,
-            Rez.Strings.M19, Rez.Strings.M20, Rez.Strings.M21
+            Rez.Strings.M19, Rez.Strings.M20, Rez.Strings.M21, Rez.Strings.M22
         ][index(id, COUNT, 0)] as ResourceId);
+    }
+
+    // Atmos Air Quality's AQI complication. An app complication has no native type, so it is found by its
+    // long label and its id kept; the id goes stale if the app is uninstalled, then the next read rescans.
+    var airId as Complications.Id? = null;
+
+    function air() as Complications.Complication? {
+        var id = airId;
+        if (id != null) {
+            try { return Complications.getComplication(id); } catch (e) { airId = null; }
+        }
+        var it = Complications.getComplications();
+        for (var c = it.next(); c != null; c = it.next()) {
+            if ("AtmosAirAQI".equals(c.longLabel)) { airId = c.complicationId; return c; }
+        }
+        return null;
     }
 
     function complication(type as Complications.Type) as Numeric or Null {
@@ -212,6 +228,14 @@ module Fields {
             // Pascals on current firmware; a small value is taken to be hPa already.
             var v = complication(Complications.COMPLICATION_TYPE_SEA_LEVEL_PRESSURE);
             return v == null ? none : [Math.round(v > 2000 ? v / 100.0 : v).toNumber().toString(), null, "hPa"];
+        } else if (id == AIR) {
+            // [aqi, progress, "AQI", aqi]. EU or US scale per the app's setting; its ranges end at that scale's top,
+            // else the US top. The view colours the gauge by US AQI category, so the app should be set to US.
+            var c = air(), v = c == null ? null : c.value;
+            if (!(v instanceof Number || v instanceof Float || v instanceof Long || v instanceof Double)) { return none; }
+            var r = (c as Complications.Complication).ranges, top = r != null && r.size() > 0 ? r[r.size() - 1] : 300;
+            var n = (v as Numeric).toNumber(), p = top > 0 ? n.toFloat() / top : 0.0;
+            return [n.toString(), p > 1 ? 1.0 : p, "AQI", n];
         } else if (id == MOVE) {
             // Move bar: 0 = active, 1+ = alert (first segment after 1 h idle), 5 = full. The view tracks resets.
             var v = ActivityMonitor.getInfo().moveBarLevel;

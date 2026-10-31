@@ -74,6 +74,10 @@ _Avoid_: Recovered, ready
 The Body Battery bar's prompt under 10%: "REST" before the number in the alert words. Under 5% the bar's first fifth also breathes in the accent.
 _Avoid_: Low battery, drained
 
+**Air quality**:
+The field showing the Atmos Air Quality app's AQI. Its ring and caption take the US AQI category colour: green, yellow, orange, red, purple, maroon; the number stays white. Without the app it is Unavailable.
+_Avoid_: Pollution, AQI field
+
 ### Modes
 
 **Active mode**:

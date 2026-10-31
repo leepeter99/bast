@@ -177,6 +177,23 @@ class PantherView extends WatchUi.WatchFace {
     // High stress, in the bar and the gauge: orange, or red on the amber accent.
     function hot() as Number { return accentIdx == AMBER ? 0xff5a5a : 0xff993d; }
 
+    // US AQI category colours up to 50, 100, 150, 200, 300, then above. EPA's purple and maroon are brightened
+    // to stay readable on the gauge plate.
+    const AQI_TOPS = [50, 100, 150, 200, 300];
+    const AQI_COLOURS = [0x00e400, 0xffff00, 0xff7e00, 0xff0000, 0xb45ad2, 0xc0304a];
+
+    // A gauge's ring and caption colour in place of the accent, or null: high stress, or the air quality category.
+    function warn(id as Number, d as Array) as Number? {
+        var p = d[1] as Float?;
+        if (id == Fields.STRESS && p != null && p > 0.75) { return hot(); }
+        if (id == Fields.AIR && d.size() > 3) {
+            var n = d[3] as Number, k = 0;
+            while (k < AQI_TOPS.size() && n > AQI_TOPS[k]) { k++; }
+            return AQI_COLOURS[k] as Number;
+        }
+        return null;
+    }
+
     function dim(c as Number, f as Float) as Number {
         return (((c >> 16) & 0xff) * f).toNumber() << 16 | (((c >> 8) & 0xff) * f).toNumber() << 8 | ((c & 0xff) * f).toNumber();
     }
@@ -353,7 +370,7 @@ class PantherView extends WatchUi.WatchFace {
 
     // Chronos-style subdial: a flat plate inside a darker rim, thin progress ring.
     function drawGauge(dc as Dc, id as Number, c as Array<Float>, d as Array) as Void {
-        var x = c[0], y = c[1], r = c[2], value = d[0] as String, p = d[1] as Float?;
+        var x = c[0], y = c[1], r = c[2], value = d[0] as String, p = d[1] as Float?, hi = warn(id, d);
         dc.setColor(tint(0x0a0820), Graphics.COLOR_TRANSPARENT);
         dc.fillCircle(x, y, r);
         dc.setColor(tint(0x1a1542), Graphics.COLOR_TRANSPARENT);
@@ -363,7 +380,7 @@ class PantherView extends WatchUi.WatchFace {
             dc.setPenWidth((3 * S + 0.5).toNumber());
             dc.setColor(tint(TRACK), Graphics.COLOR_TRANSPARENT);
             dc.drawCircle(x, y, rr);
-            dc.setColor(id == Fields.STRESS && p > 0.75 ? hot() : accent(), Graphics.COLOR_TRANSPARENT);
+            dc.setColor(hi != null ? hi : accent(), Graphics.COLOR_TRANSPARENT);
             if (p >= 1) { dc.drawCircle(x, y, rr); }
             else if (p > 0) {
                 var end = (90 - p * 360).toNumber();
@@ -392,7 +409,7 @@ class PantherView extends WatchUi.WatchFace {
         // Even sizes only, to bound the font cache.
         text(dc, x, y + (sub ? -r * 0.04 : 2 * S), (size < fitSize ? size : fitSize).toNumber() / 2 * 2, value);
         if (sub) {
-            dc.setColor(id == Fields.WEATHER ? 0xf5f6f7 : accent(), Graphics.COLOR_TRANSPARENT);
+            dc.setColor(id == Fields.WEATHER ? 0xf5f6f7 : hi != null ? hi : accent(), Graphics.COLOR_TRANSPARENT);
             text(dc, x, y + r * 0.5, (r * 0.34 / S).toNumber() / 2 * 2, d[2] as String);
         }
     }
@@ -517,6 +534,10 @@ class PantherView extends WatchUi.WatchFace {
             pl(dc, [[0, 15], [6, 3], [9, 8], [11, 5], [16, 15]], true); fp(dc, [[6, 3], [4, 7], [8, 7]]);
         } else if (id == Fields.PRESSURE) {
             ci(dc, 8, 8, 7, false); pl(dc, [[8, 8], [12, 4]], false); ci(dc, 8, 8, 1.5, true);
+        } else if (id == Fields.AIR) {
+            // A cloud shedding particles.
+            pl(dc, [[2, 10], [0, 7], [3, 4], [7, 4], [9, 2], [13, 3], [16, 7], [15, 10]], true);
+            ci(dc, 4, 14, 1.2, true); ci(dc, 8, 15, 1.2, true); ci(dc, 12, 14, 1.2, true);
         }
     }
 
