@@ -47,7 +47,7 @@ What the Sunrise / Sunset field shows: the next sunrise or sunset today, or tomo
 _Avoid_: Sunrise time, daylight
 
 **Corner bar**:
-A bar along the dial edge in one of four corners, showing one bar metric or turned off. Its fill always tracks the real value: a smooth arc, or five cells for Move alert. Its label is the metric's icon followed by its number. Minute ticks show only where no corner bar is drawn.
+A bar along the dial edge in one of four corners, showing one bar metric or turned off. Its fill always tracks the real value: a smooth arc, or five cells for Move alert. A smooth bar gets brighter by quarter as it fills and reaches the accent only when full. Recovery, Steps and Floors climbed shine lilac-white with a halo for a few minutes after filling. Its label is the metric's icon followed by its number. Minute ticks show only where no corner bar is drawn.
 _Avoid_: Arc gauge, bezel, side field
 
 **Bar metric**:
@@ -69,6 +69,10 @@ _Avoid_: Max recovery, baseline
 **Recharged**:
 The state of the Recovery bar at zero hours of recovery: full, with the peak cleared.
 _Avoid_: Recovered, ready
+
+**Rest**:
+The Body Battery bar's prompt under 10%: "REST" before the number in the alert words. Under 5% the bar's first fifth also breathes in the accent.
+_Avoid_: Low battery, drained
 
 ### Modes
 

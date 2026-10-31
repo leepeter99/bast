@@ -29,6 +29,8 @@ class PantherView extends WatchUi.WatchFace {
     const CHARGE = [0x9d7bff, 0x8c68f5, 0x7a55e8, 0x6845d8, 0x5a38c8];
     const BREATH = [0.3, 0.55, 0.8, 0.55];  // drained Move: the first cell's brightness, one step per second
     const GLOW = 0xe9e3ff;
+    // Smooth bars below full: the accent dimmed by quarter of fill, so only a full bar reaches the accent (ADR 0014).
+    const QUARTERS = [0.5, 0.65, 0.8, 0.9];
     const ALERT = 0x9585e6;
     const SHIFTS = [[0, 0], [2, 0], [2, 2], [0, 2]];
     // Hand outlines from the prototype SVG, relative to the centre, pointing at 12.
@@ -55,6 +57,9 @@ class PantherView extends WatchUi.WatchFace {
     var moveMin as Number = -1;
     var walking as Boolean = false;
     var resetUntil as Number = 0;
+    // Goal bars shine for RESET_HOLD after the face sees them fill. null = not seen yet, so a bar already full never shines.
+    var wasFull as Array<Boolean?> = [null, null, null, null];
+    var shineUntil as Array<Number> = [0, 0, 0, 0];
     // Icon transform (centre, scale, rotation), set by drawIcon for its helpers.
     var icX as Float = 0.0;
     var icY as Float = 0.0;
@@ -75,6 +80,8 @@ class PantherView extends WatchUi.WatchFace {
         bars = Fields.bars();
         accentIdx = Fields.index(Application.Properties.getValue("accent"), ACCENTS.size(), 0);
         last = [0, 4, 8];
+        wasFull = [null, null, null, null];
+        shineUntil = [0, 0, 0, 0];
         cachedMin = -1;
         edgeRef = null;
     }
@@ -167,6 +174,9 @@ class PantherView extends WatchUi.WatchFace {
         return out;
     }
 
+    // High stress, in the bar and the gauge: orange, or red on the amber accent.
+    function hot() as Number { return accentIdx == AMBER ? 0xff5a5a : 0xff993d; }
+
     function dim(c as Number, f as Float) as Number {
         return (((c >> 16) & 0xff) * f).toNumber() << 16 | (((c >> 8) & 0xff) * f).toNumber() << 8 | ((c & 0xff) * f).toNumber();
     }
@@ -241,12 +251,12 @@ class PantherView extends WatchUi.WatchFace {
         dc.drawArc(CX, CX, BAR_R, Graphics.ARC_CLOCKWISE, (450 - a - idx * w - 1) % 360, (450 - a - (idx + 1) * w + 1) % 360);
     }
 
-    // Smooth fill of bar k to fraction f, from its fill end. drawArc truncates to whole degrees.
-    function drawFill(dc as Dc, k as Number, f as Float, col as Number) as Void {
+    // Smooth fill of bar k to fraction f, from its fill end, pen w px before scaling. drawArc truncates to whole degrees.
+    function drawFill(dc as Dc, k as Number, f as Float, col as Number, w as Number) as Void {
         var a0 = SPANS[k][0] + 1, a1 = SPANS[k][1] - 1, len = ((f > 1 ? 1 : f) * (a1 - a0)).toNumber();
         if (len < 1) { return; }
         var from = FROM_START[k] ? a0 : a1 - len;
-        dc.setPenWidth((16 * S).toNumber());
+        dc.setPenWidth((w * S).toNumber());
         dc.setColor(col, Graphics.COLOR_TRANSPARENT);
         dc.drawArc(CX, CX, BAR_R, Graphics.ARC_CLOCKWISE, (450 - from) % 360, (450 - from - len) % 360);
     }
@@ -274,16 +284,19 @@ class PantherView extends WatchUi.WatchFace {
             if (bars[k] == 0 || d == null) { continue; }
             var id = Fields.BAR_IDS[bars[k]] as Number, n = segments(k), p = d[1] as Float?, col = accent(), textCol = 0xf5f6f7, pulse = -1, pulseCol = tint(GLOW);
             var num = "" as String;
-            var lit = 0, fill = p == null ? 0.0 : p;
+            // Full = calm for Stress, like the other bars.
+            var lit = 0, fill = p == null ? 0.0 : id == Fields.STRESS ? 1 - p : p, breathe = false;
+            if (id != Fields.MOVE && fill < 1) { col = dim(col, QUARTERS[fill > 0 ? (fill * 4).toNumber() : 0] as Float); }
             if (id == Fields.STEPS) {
                 num = (d[(d.size() > 3 ? 3 : 0)] as Object).toString();
             } else if (id == Fields.BODY) {
                 num = d[0] as String;
+                // Nearly flat: REST in the alert words, and under 5% the bar's first fifth breathes like a drained Move cell.
+                if (p != null && p < 0.1) { num = Fields.str(Rez.Strings.Rest) + " " + num; textCol = tint(ALERT); }
+                if (p != null && p < 0.05) { breathe = true; pulseCol = mix(tint(TRACK), accent(), BREATH[sec % 4] as Float); }
             } else if (id == Fields.STRESS) {
-                // Full = calm, like the other bars.
-                fill = p == null ? 0.0 : 1 - p;
                 num = d[0] as String;
-                if (p != null && p > 0.75) { col = accentIdx == AMBER ? 0xff5a5a : 0xff993d; }
+                if (p != null && p > 0.75) { col = hot(); }
             } else if (id == Fields.FLOORS) {
                 num = d[0] as String;
             } else if (id == Fields.MOVE) {
@@ -308,11 +321,18 @@ class PantherView extends WatchUi.WatchFace {
                 }
             } else if (p != null && p >= 1) {
                 num = Fields.str(Rez.Strings.Recharged);
-                col = tint(0xe9e3ff);
             } else {
                 num = d[0] as String;
             }
-            if (id != Fields.MOVE) { drawFill(dc, k, fill, col); }
+            if (id != Fields.MOVE) {
+                // Recovery, Steps and Floors shine on filling: lilac-white over a wider dim accent halo, then the accent.
+                var now = Time.now().value(), full = fill >= 1;
+                if (full && wasFull[k] == false && id != Fields.BODY && id != Fields.STRESS) { shineUntil[k] = now + RESET_HOLD; }
+                wasFull[k] = full;
+                if (now < shineUntil[k]) { drawFill(dc, k, 1.0, dim(accent(), 0.6), 24); col = tint(GLOW); }
+                if (breathe) { drawFill(dc, k, 0.2, pulseCol, 16); }
+                drawFill(dc, k, fill, col, 16);
+            }
             for (var j = 0; j < lit && j < n; j++) { drawSegment(dc, k, j, n, col); }
             if (pulse >= 0) { drawSegment(dc, k, pulse, n, pulseCol); }
             // Icon, then the number, centred on the bar's middle along the label arc. The icon turns with the
@@ -343,7 +363,7 @@ class PantherView extends WatchUi.WatchFace {
             dc.setPenWidth((3 * S + 0.5).toNumber());
             dc.setColor(tint(TRACK), Graphics.COLOR_TRANSPARENT);
             dc.drawCircle(x, y, rr);
-            dc.setColor(id == Fields.STRESS && p > 0.75 ? (accentIdx == AMBER ? 0xff5a5a : 0xff993d) : accent(), Graphics.COLOR_TRANSPARENT);
+            dc.setColor(id == Fields.STRESS && p > 0.75 ? hot() : accent(), Graphics.COLOR_TRANSPARENT);
             if (p >= 1) { dc.drawCircle(x, y, rr); }
             else if (p > 0) {
                 var end = (90 - p * 360).toNumber();

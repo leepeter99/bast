@@ -66,6 +66,7 @@
     <string id="MoveAlert">MOVE!</string>
     <string id="KeepGoing">KEEP GOING</string>
     <string id="Drained">DRAINED</string>
+    <string id="Rest">REST</string>
     <string id="Rise">RISE</string>
     <string id="Set">SET</string>
     <string id="Gauges">Gauges</string>
