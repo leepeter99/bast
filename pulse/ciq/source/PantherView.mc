@@ -76,7 +76,7 @@ class PantherView extends WatchUi.WatchFace {
     }
 
     function loadSettings() as Void {
-        for (var i = 0; i < 3; i++) { fields[i] = Fields.field(i); }
+        for (var i = 0; i < 3; i++) { fields[i] = gauge(i); }
         bars = Fields.bars();
         accentIdx = Fields.index(Application.Properties.getValue("accent"), ACCENTS.size(), 0);
         last = [0, 4, 8];
@@ -137,6 +137,7 @@ class PantherView extends WatchUi.WatchFace {
     (:nodemo) function clock() as Array<Number> { var c = System.getClockTime(); return [c.hour, c.min, c.sec] as Array<Number>; }
     (:nodemo) function read(id as Number) as Array { return Fields.read(id); }
     (:nodemo) function demoMove() as Void {}
+    (:nodemo) function gauge(i as Number) as Number { return Fields.field(i); }
 
     (:demo) function clock() as Array<Number> { return [10, 8, 36] as Array<Number>; }
     (:demo) function read(id as Number) as Array {
@@ -144,9 +145,12 @@ class PantherView extends WatchUi.WatchFace {
         if (id == Fields.BODY) { return ["86", 0.86, null]; }
         if (id == Fields.STEPS) { return ["8.4k", 0.84, null, 8432]; }
         if (id == Fields.RECOVERY) { return ["5h", 0.7, null]; }
+        if (id == Fields.AIR) { return ["42", 0.14, "AQI", 42]; }
         return Fields.read(id);
     }
     (:demo) function demoMove() as Void { moveLevel = 0; resetUntil = 0; walking = false; }
+    // Shows off the Air quality gauge in place of Weather.
+    (:demo) function gauge(i as Number) as Number { return [Fields.DATE, Fields.AIR, Fields.HEART][i] as Number; }
 
     function accent() as Number { return ACCENTS[accentIdx] as Number; }
 
