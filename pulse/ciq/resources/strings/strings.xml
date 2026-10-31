@@ -32,6 +32,7 @@
     <string id="M19">Weekly run distance</string>
     <string id="M20">Altitude</string>
     <string id="M21">Barometric pressure</string>
+    <string id="M22">Air quality (Atmos)</string>
     <string id="Thousands">K</string>
     <string id="Km">km</string>
     <string id="Miles">mi</string>
