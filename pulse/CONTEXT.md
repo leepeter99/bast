@@ -75,7 +75,7 @@ The Body Battery bar's prompt under 10%: "REST" before the number in the alert w
 _Avoid_: Low battery, drained
 
 **Air quality**:
-The field showing the Atmos Air Quality app's AQI. Its ring and caption take the US AQI category colour: green, yellow, orange, red, purple, maroon; the number stays white. Without the app it is Unavailable.
+The field showing the Atmos Air Quality app's AQI. It has no ring. Its caption names the US AQI category (Good, Moderate, Sensitive for unhealthy for sensitive groups, Unhealthy, Very unhealthy, Hazardous) in that category's colour: green, yellow, orange, red, purple, maroon; the number stays white. Without the app it is Unavailable.
 _Avoid_: Pollution, AQI field
 
 ### Modes

@@ -1,4 +1,4 @@
-Bast Pulse is an analog watch face for AMOLED Garmin watches with three data gauges that move out of the way of the hands, and four segmented corner bars along the edge for your daily progress.
+Bast Pulse is an analog watch face for AMOLED Garmin watches with three data gauges that move out of the way of the hands, and four corner bars along the edge for your daily progress.
 
 GAUGES
 Three large circular gauges sit at the top, lower right and lower left of the dial. When the hour or minute hand passes over a gauge, it moves to the free spot where it can stay biggest, so the reading stays visible. If there is no room, the gauge hides until the hands move on. Each gauge grows as large as the hands and its neighbours allow, and its text grows with it. Fields with a natural range, such as watch battery, show a progress arc.
@@ -21,17 +21,19 @@ Pick any three of:
 • Weekly run distance
 • Altitude
 • Barometric pressure
+• Air quality, from the Atmos Air Quality app (install it separately and set it to the US scale). Shows the US AQI category, Good to Hazardous, in its colour; press and hold to open the app.
 • Second time zone: London, New York, Tokyo, Sydney, Singapore, Kuala Lumpur, Kolkata, Dubai, Bangkok, Taipei or UTC, with daylight saving applied. You can also set a custom UTC offset with an optional 3-letter label.
 
 CORNER BARS
 Four bars run along the dial edge. Each one shows Steps, Body Battery, Move alert, Recovery, Stress or Floors climbed, or can be turned off. The fill always tracks the real value.
+• Bars brighten as they fill. Steps, Floors climbed and Recovery shine briefly when they reach their goal.
 • Each bar shows a Black Panther icon and its number, such as a paw print and your full step count.
 • Move alert reads as vibranium charge: full and purple, labelled CHARGED, when you've moved recently. It dims a segment for each step of idleness and recharges when you walk it off.
 • Recovery fills as your recovery time runs down, and shows RECHARGED at zero. It is also available as a gauge.
 • Stress fills as you calm down and turns orange when stress is high. It is also available as a gauge.
 
 CUSTOMIZE
-Accent colour: Vibranium purple, Deep violet, Soft lavender, Amber, Ice Blue or Lume Green. Change gauges and bars from the phone app or on the watch.
+Accent colour: Vibranium purple, Deep violet, Soft lavender, Amber, Ice Blue or Lume Green. Change gauges, bars and accent from the phone app or on the watch.
 
 ALWAYS-ON
 In low-power mode, the face shows only outlined hour and minute hands, shifted slightly each minute to protect the AMOLED display.

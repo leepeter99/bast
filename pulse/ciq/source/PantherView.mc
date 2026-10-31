@@ -76,7 +76,7 @@ class PantherView extends WatchUi.WatchFace {
     }
 
     function loadSettings() as Void {
-        for (var i = 0; i < 3; i++) { fields[i] = Fields.field(i); }
+        for (var i = 0; i < 3; i++) { fields[i] = gauge(i); }
         bars = Fields.bars();
         accentIdx = Fields.index(Application.Properties.getValue("accent"), ACCENTS.size(), 0);
         last = [0, 4, 8];
@@ -137,6 +137,7 @@ class PantherView extends WatchUi.WatchFace {
     (:nodemo) function clock() as Array<Number> { var c = System.getClockTime(); return [c.hour, c.min, c.sec] as Array<Number>; }
     (:nodemo) function read(id as Number) as Array { return Fields.read(id); }
     (:nodemo) function demoMove() as Void {}
+    (:nodemo) function gauge(i as Number) as Number { return Fields.field(i); }
 
     (:demo) function clock() as Array<Number> { return [10, 8, 36] as Array<Number>; }
     (:demo) function read(id as Number) as Array {
@@ -144,9 +145,35 @@ class PantherView extends WatchUi.WatchFace {
         if (id == Fields.BODY) { return ["86", 0.86, null]; }
         if (id == Fields.STEPS) { return ["8.4k", 0.84, null, 8432]; }
         if (id == Fields.RECOVERY) { return ["5h", 0.7, null]; }
+        if (id == Fields.BATTERY) { return ["78%", 0.78, null]; }
+        if (id == Fields.STRESS) { return ["24", 0.24, null]; }
+        if (id == Fields.WEATHER) { return ["24°", null, "18°|27°"]; }
+        if (id == Fields.SUNRISE) { return ["18:52", null, Fields.str(Rez.Strings.Set)]; }
+        if (id == Fields.ZONE) { return ["11:08", null, "TYO"]; }
+        if (id == Fields.AIR) {
+            var sc = SCENES[scene()] as Array, k = sc[3] as Number;
+            return [(sc[2] as Number).toString(), null, Fields.str([Rez.Strings.Aqi0, Rez.Strings.Aqi1, Rez.Strings.Aqi2][k] as ResourceId), k];
+        }
         return Fields.read(id);
     }
-    (:demo) function demoMove() as Void { moveLevel = 0; resetUntil = 0; walking = false; }
+    // Store screenshots: one scene per 20 s from launch, so one run gives several. [accent, gauges, Air AQI, its category]
+    (:demo) const SCENES = [
+        [0, [Fields.DATE, Fields.AIR, Fields.HEART], 42, 0],
+        [3, [Fields.ZONE, Fields.AIR, Fields.RECOVERY], 78, 1],
+        [4, [Fields.SUNRISE, Fields.BATTERY, Fields.STRESS], 0, 0],
+        [5, [Fields.DATE, Fields.WEATHER, Fields.AIR], 125, 2]
+    ];
+    (:demo) var demoStart as Number = -1;
+    (:demo) var shown as Number = 0;
+    (:demo) function scene() as Number { return demoStart < 0 ? 0 : (System.getTimer() - demoStart) / 20000 % SCENES.size(); }
+    (:demo) function demoMove() as Void {
+        moveLevel = 0; resetUntil = 0; walking = false;
+        if (demoStart < 0) { demoStart = System.getTimer(); }
+        var s = scene();
+        if (s != shown) { shown = s; loadSettings(); }
+        accentIdx = (SCENES[s] as Array)[0] as Number;
+    }
+    (:demo) function gauge(i as Number) as Number { return ((SCENES[scene()] as Array)[1] as Array)[i] as Number; }
 
     function accent() as Number { return ACCENTS[accentIdx] as Number; }
 
@@ -177,9 +204,7 @@ class PantherView extends WatchUi.WatchFace {
     // High stress, in the bar and the gauge: orange, or red on the amber accent.
     function hot() as Number { return accentIdx == AMBER ? 0xff5a5a : 0xff993d; }
 
-    // US AQI category colours up to 50, 100, 150, 200, 300, then above. EPA's purple and maroon are brightened
-    // to stay readable on the gauge plate.
-    const AQI_TOPS = [50, 100, 150, 200, 300];
+    // US AQI category colours (Fields.AQI_TOPS). EPA's purple and maroon are brightened to stay readable on the gauge plate.
     const AQI_COLOURS = [0x00e400, 0xffff00, 0xff7e00, 0xff0000, 0xb45ad2, 0xc0304a];
 
     // A gauge's ring and caption colour in place of the accent, or null: high stress, or the air quality category.
@@ -187,9 +212,7 @@ class PantherView extends WatchUi.WatchFace {
         var p = d[1] as Float?;
         if (id == Fields.STRESS && p != null && p > 0.75) { return hot(); }
         if (id == Fields.AIR && d.size() > 3) {
-            var n = d[3] as Number, k = 0;
-            while (k < AQI_TOPS.size() && n > AQI_TOPS[k]) { k++; }
-            return AQI_COLOURS[k] as Number;
+            return AQI_COLOURS[d[3] as Number] as Number;
         }
         return null;
     }
@@ -410,7 +433,9 @@ class PantherView extends WatchUi.WatchFace {
         text(dc, x, y + (sub ? -r * 0.04 : 2 * S), (size < fitSize ? size : fitSize).toNumber() / 2 * 2, value);
         if (sub) {
             dc.setColor(id == Fields.WEATHER ? 0xf5f6f7 : hi != null ? hi : accent(), Graphics.COLOR_TRANSPARENT);
-            text(dc, x, y + r * 0.5, (r * 0.34 / S).toNumber() / 2 * 2, d[2] as String);
+            // Long captions (VERY UNHEALTHY) shrink to the gauge's width at that height.
+            var cap = d[2] as String, cs = r * 0.34 / S, cf = r * 1.5 / S / (cap.length() * 0.62);
+            text(dc, x, y + r * 0.5, (cs < cf ? cs : cf).toNumber() / 2 * 2, cap);
         }
     }
 
@@ -535,9 +560,12 @@ class PantherView extends WatchUi.WatchFace {
         } else if (id == Fields.PRESSURE) {
             ci(dc, 8, 8, 7, false); pl(dc, [[8, 8], [12, 4]], false); ci(dc, 8, 8, 1.5, true);
         } else if (id == Fields.AIR) {
-            // A cloud shedding particles.
-            pl(dc, [[2, 10], [0, 7], [3, 4], [7, 4], [9, 2], [13, 3], [16, 7], [15, 10]], true);
-            ci(dc, 4, 14, 1.2, true); ci(dc, 8, 15, 1.2, true); ci(dc, 12, 14, 1.2, true);
+            // Airflow: three long, gentle swells, one per line, unlike Respiration's straight, flicked lines.
+            for (var wy = 3; wy <= 13; wy += 5) {
+                var wp = [] as Array;
+                for (var wx = 0; wx <= 16; wx += 2) { wp.add([wx, wy - 1.5 * Math.sin(wx * Math.PI / 8)]); }
+                pl(dc, wp, false);
+            }
         }
     }
 

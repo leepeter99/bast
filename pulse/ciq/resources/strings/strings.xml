@@ -70,6 +70,12 @@
     <string id="Rest">REST</string>
     <string id="Rise">RISE</string>
     <string id="Set">SET</string>
+    <string id="Aqi0">GOOD</string>
+    <string id="Aqi1">MODERATE</string>
+    <string id="Aqi2">SENSITIVE</string>
+    <string id="Aqi3">UNHEALTHY</string>
+    <string id="Aqi4">VERY UNHEALTHY</string>
+    <string id="Aqi5">HAZARDOUS</string>
     <string id="Gauges">Gauges</string>
     <string id="CornerBars">Corner bars</string>
     <string id="A0">Vibranium purple</string>

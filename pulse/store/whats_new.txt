@@ -1,7 +1,6 @@
-• The accent colour now recolours the whole face, Move bar included.
-• Second time zone adds Bangkok and Taipei. A custom zone without a label shows its UTC offset.
-• Recovery bar no longer resets when your recovery time is topped up after a workout.
-• Move alert recharges more reliably when you walk it off.
-• Sunrise / Sunset shows "--" until both times are known.
-• Gauge progress rings scale properly on every screen size.
-• Hour format setting now sits before the second zone city.
+• New Air quality gauge: shows the AQI from the Atmos Air Quality app with its US AQI category, Good to Hazardous, in the category colour. Press and hold it to open Atmos, on watches that support it.
+• Corner bars fill smoothly and brighten as they fill. Steps, Floors climbed and Recovery shine briefly when they reach their goal.
+• Move alert shows how idle you are (MOVE! 3/5), KEEP GOING while you walk it off, and DRAINED at the last step.
+• Body Battery shows REST below 10%, and its bar breathes when nearly empty.
+• The accent colour can now be changed on the watch.
+• The Date gauge no longer shrinks too small to read.

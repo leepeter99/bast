@@ -107,6 +107,8 @@ module Fields {
     // Atmos Air Quality's AQI complication. An app complication has no native type, so it is found by its
     // long label and its id kept; the id goes stale if the app is uninstalled, then the next read rescans.
     var airId as Complications.Id? = null;
+    // Top of each US AQI category: Good, Moderate, Unhealthy for sensitive groups, Unhealthy, Very unhealthy; above is Hazardous.
+    const AQI_TOPS = [50, 100, 150, 200, 300];
 
     function air() as Complications.Complication? {
         var id = airId;
@@ -229,13 +231,12 @@ module Fields {
             var v = complication(Complications.COMPLICATION_TYPE_SEA_LEVEL_PRESSURE);
             return v == null ? none : [Math.round(v > 2000 ? v / 100.0 : v).toNumber().toString(), null, "hPa"];
         } else if (id == AIR) {
-            // [aqi, progress, "AQI", aqi]. EU or US scale per the app's setting; its ranges end at that scale's top,
-            // else the US top. The view colours the gauge by US AQI category, so the app should be set to US.
+            // [aqi, null, category name, category 0-5]. The categories are US AQI, so the app should be set to US.
             var c = air(), v = c == null ? null : c.value;
             if (!(v instanceof Number || v instanceof Float || v instanceof Long || v instanceof Double)) { return none; }
-            var r = (c as Complications.Complication).ranges, top = r != null && r.size() > 0 ? r[r.size() - 1] : 300;
-            var n = (v as Numeric).toNumber(), p = top > 0 ? n.toFloat() / top : 0.0;
-            return [n.toString(), p > 1 ? 1.0 : p, "AQI", n];
+            var n = (v as Numeric).toNumber(), k = 0;
+            while (k < AQI_TOPS.size() && n > AQI_TOPS[k]) { k++; }
+            return [n.toString(), null, str([Rez.Strings.Aqi0, Rez.Strings.Aqi1, Rez.Strings.Aqi2, Rez.Strings.Aqi3, Rez.Strings.Aqi4, Rez.Strings.Aqi5][k] as ResourceId), k];
         } else if (id == MOVE) {
             // Move bar: 0 = active, 1+ = alert (first segment after 1 h idle), 5 = full. The view tracks resets.
             var v = ActivityMonitor.getInfo().moveBarLevel;
