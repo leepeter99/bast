@@ -324,9 +324,11 @@ class PantherView extends WatchUi.WatchFace {
             if (bars[k] == 0 || d == null) { continue; }
             var id = Fields.BAR_IDS[bars[k]] as Number, n = segments(k), p = d[1] as Float?, col = accent(), textCol = 0xf5f6f7, pulse = -1, pulseCol = tint(GLOW);
             var num = "" as String;
-            // Full = calm for Stress, like the other bars.
-            var lit = 0, fill = p == null ? 0.0 : id == Fields.STRESS ? 1 - p : p, breathe = false;
-            if (id != Fields.MOVE && fill < 1) { col = dim(col, QUARTERS[fill > 0 ? (fill * 4).toNumber() : 0] as Float); }
+            // Every bar fills with its value; Stress fills as stress rises (0-100).
+            var lit = 0, fill = p == null ? 0.0 : p, breathe = false;
+            // Brightness follows how good the reading is: Stress dims as it rises, the others brighten as they fill.
+            var good = id == Fields.STRESS ? 1 - fill : fill;
+            if (id != Fields.MOVE && good < 1) { col = dim(col, QUARTERS[good > 0 ? (good * 4).toNumber() : 0] as Float); }
             if (id == Fields.STEPS) {
                 num = (d[(d.size() > 3 ? 3 : 0)] as Object).toString();
             } else if (id == Fields.BODY) {
