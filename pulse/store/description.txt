@@ -30,7 +30,7 @@ Four bars run along the dial edge. Each one shows Steps, Body Battery, Move aler
 • Each bar shows a Black Panther icon and its number, such as a paw print and your full step count.
 • Move alert reads as vibranium charge: full and purple, labelled CHARGED, when you've moved recently. It dims a segment for each step of idleness and recharges when you walk it off.
 • Recovery fills as your recovery time runs down, and shows RECHARGED at zero. It is also available as a gauge.
-• Stress fills as you calm down and turns orange when stress is high. It is also available as a gauge.
+• Stress fills as stress rises and turns orange when stress is high. It is also available as a gauge.
 
 CUSTOMIZE
 Accent colour: Vibranium purple, Deep violet, Soft lavender, Amber, Ice Blue or Lume Green. Change gauges, bars and accent from the phone app or on the watch.
