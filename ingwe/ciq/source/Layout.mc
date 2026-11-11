@@ -26,10 +26,13 @@ module Layout {
         return [[m * 0.5, HOUR_LEN], [(m % 60) * 6.0, MIN_LEN]] as Array<Array<Float>>;
     }
 
+    // Gauge radius: R, or less so a gauge stays left of maxX.
+    function radius(maxX as Float) as Float { return maxX - CX < R ? maxX - CX : R; }
+
     // [x, y, r] per field touching the edge, or null for field < 0 or a duplicate of an earlier one.
     // `maxX` shrinks every gauge so top and bottom stay left of the Hybrid digits (pass 9999 when there are none).
     function fit(fields as Array<Number>, maxX as Float) as Array {
-        var r = maxX - CX < R ? maxX - CX : R, d = EDGE - r, cs = new [fields.size()];
+        var r = radius(maxX), d = EDGE - r, cs = new [fields.size()];
         for (var i = 0; i < fields.size(); i++) {
             var dup = fields[i] < 0;
             for (var j = 0; j < i; j++) {

@@ -429,9 +429,9 @@ class PantherView extends WatchUi.WatchFace {
     }
 
     // Hybrid and Digital: stacked hours, minutes and seconds right of centre.
-    // Above them, the battery icon, its body filled to the charge.
+    // Above them, the battery icon at the size it has in a gauge beside the digits.
     function drawDigits(dc as Dc, ct as Array<Number>) as Void {
-        drawIcon(dc, Fields.BATTERY, 345 * S, 112 * S, 3.0 * S, 0.0, accent(), Graphics.COLOR_BLACK);
+        drawIcon(dc, Fields.BATTERY, 345 * S, 116 * S, Layout.radius(Layout.DIGITS_X) / 38, 0.0, accent(), Graphics.COLOR_BLACK);
         dc.setColor(0xf5f6f7, Graphics.COLOR_TRANSPARENT);
         text(dc, 345 * S, 178 * S, 92, Fields.hour(ct[0]));
         text(dc, 345 * S, 262 * S, 92, ct[1].format("%02d"));
