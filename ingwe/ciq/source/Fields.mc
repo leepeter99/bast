@@ -14,8 +14,8 @@ import Toybox.WatchUi;
 // DataProvider (ADR 0001): complications first, direct APIs otherwise.
 // read() returns [text, progress 0..1 or null, caption or null]. Missing data shows "--" (Unavailable).
 module Fields {
-    enum { HEART, RESTING, RECOVERY, BODY, WEATHER, BATTERY, STEPS, DATE, CALORIES, DISTANCE, SUNRISE, STRESS, ZONE, MOVE, FLOORS, PULSEOX, RESP, HILOW, BIKE, RUN, ALTITUDE, PRESSURE }
-    const COUNT = 22;
+    enum { HEART, RESTING, RECOVERY, BODY, WEATHER, BATTERY, STEPS, DATE, CALORIES, DISTANCE, SUNRISE, STRESS, ZONE, MOVE, FLOORS, PULSEOX, RESP, HILOW, BIKE, RUN, ALTITUDE, PRESSURE, AIR }
+    const COUNT = 23;
     // Gauge defaults per position (top, right, bottom, left).
     const DEFAULTS = [DATE, BATTERY, WEATHER, HEART];
     // Corner bar options: Off, Steps, Body Battery, Move, Recovery, Stress, Floors (ADR 0005).
@@ -36,15 +36,31 @@ module Fields {
         return v instanceof Number && v >= 0 && v < n ? v : dflt;
     }
 
-    // Metrics shown only on the corner bars, never as a gauge.
+    // Metrics shown only on the corner bars, never as a gauge. Stress and Recovery can be both.
     function fixed(id as Number) as Boolean {
-        return id == STEPS || id == BODY || id == MOVE || id == RECOVERY || id == FLOORS;
+        return id == STEPS || id == BODY || id == MOVE || id == FLOORS;
     }
 
-    // The gauge at position i, falling back to its default for stale or bar-only values.
+    // The gauge id stored for position i, or -1 when stale or bar-only.
+    function stored(i as Number) as Number {
+        var v = index(Application.Properties.getValue("field" + i), COUNT, -1);
+        return fixed(v) ? -1 : v;
+    }
+
+    // The gauge at position i. A stale or bar-only value falls back to its default, or to the first metric
+    // no other position uses, so the fallback never duplicates (and so hides) another gauge.
     function field(i as Number) as Number {
-        var v = index(Application.Properties.getValue("field" + i), COUNT, DEFAULTS[i]);
-        return fixed(v) ? DEFAULTS[i] : v;
+        var v = stored(i);
+        if (v >= 0) { return v; }
+        var others = [] as Array<Number>;
+        for (var j = 0; j < 4; j++) {
+            if (j != i) { others.add(j < i ? field(j) : stored(j)); }
+        }
+        for (var k = -1; k < COUNT; k++) {
+            var id = k < 0 ? DEFAULTS[i] as Number : k;
+            if (!fixed(id) && others.indexOf(id) < 0) { return id; }
+        }
+        return DEFAULTS[i] as Number;
     }
 
     // Bar option per corner. A metric already on an earlier corner (UL, UR, LL, LR) turns the later one Off.
@@ -60,19 +76,21 @@ module Fields {
     }
 
     // Share of the recovery peak worked off, 1.0 = recharged (ADR 0005). The peak is stored as
-    // [hours, set at]; one that has run out since it was set, or is below the reading, is replaced.
+    // [hours, projected zero]; a reading that ends later pushes the zero out, so a top-up keeps the peak.
+    // A peak whose zero has passed (recovery hit 0 while another face showed), or below the reading, is replaced.
+    // h is rounded up to whole hours, so the zero can run up to an hour late: allow that before expiring or pushing.
     function recovered(h as Number) as Float {
-        var now = Time.now().value(), saved = Application.Storage.getValue("recoveryPeak") as Array<Number>?;
+        var now = Time.now().value(), end = now + h * 3600, saved = Application.Storage.getValue("recoveryPeak") as Array<Number>?;
         if (h <= 0) {
             if (saved != null) { Application.Storage.deleteValue("recoveryPeak"); }
             return 1.0;
         }
-        var peak = saved == null || saved[0] < h || saved[1] + saved[0] * 3600 < now ? null : saved[0];
-        if (peak == null) {
-            peak = h;
-            Application.Storage.setValue("recoveryPeak", [h, now]);
+        if (saved == null || saved[0] < h || saved[1] + 3600 < now) {
+            Application.Storage.setValue("recoveryPeak", [h, end]);
+            return 0.0;
         }
-        return 1 - h.toFloat() / peak;
+        if (end > saved[1] + 3600) { Application.Storage.setValue("recoveryPeak", [saved[0], end]); }
+        return 1 - h.toFloat() / saved[0];
     }
 
     function str(id as ResourceId) as String { return WatchUi.loadResource(id) as String; }
@@ -82,8 +100,26 @@ module Fields {
             Rez.Strings.M0, Rez.Strings.M1, Rez.Strings.M2, Rez.Strings.M3, Rez.Strings.M4, Rez.Strings.M5, Rez.Strings.M6,
             Rez.Strings.M7, Rez.Strings.M8, Rez.Strings.M9, Rez.Strings.M10, Rez.Strings.M11, Rez.Strings.M12, Rez.Strings.M13,
             Rez.Strings.M14, Rez.Strings.M15, Rez.Strings.M16, Rez.Strings.M17, Rez.Strings.M18,
-            Rez.Strings.M19, Rez.Strings.M20, Rez.Strings.M21
+            Rez.Strings.M19, Rez.Strings.M20, Rez.Strings.M21, Rez.Strings.M22
         ][index(id, COUNT, 0)] as ResourceId);
+    }
+
+    // Atmos Air Quality's AQI complication. An app complication has no native type, so it is found by its
+    // long label and its id kept; the id goes stale if the app is uninstalled, then the next read rescans.
+    var airId as Complications.Id? = null;
+    // Top of each US AQI category: Good, Moderate, Unhealthy for sensitive groups, Unhealthy, Very unhealthy; above is Hazardous.
+    const AQI_TOPS = [50, 100, 150, 200, 300];
+
+    function air() as Complications.Complication? {
+        var id = airId;
+        if (id != null) {
+            try { return Complications.getComplication(id); } catch (e) { airId = null; }
+        }
+        var it = Complications.getComplications();
+        for (var c = it.next(); c != null; c = it.next()) {
+            if ("AtmosAirAQI".equals(c.longLabel)) { airId = c.complicationId; return c; }
+        }
+        return null;
     }
 
     function complication(type as Complications.Type) as Numeric or Null {
@@ -157,13 +193,13 @@ module Fields {
             var mi = System.getDeviceSettings().distanceUnits == System.UNIT_STATUTE;
             return [(cm / (mi ? 160934.4 : 100000.0)).format("%.1f") + str(mi ? Rez.Strings.Miles : Rez.Strings.Km), null, null];
         } else if (id == SUNRISE) {
-            // Next sun event today, else tomorrow's sunrise. Both are seconds since local midnight.
+            // Next sun event today, else tomorrow's sunrise. Both are seconds since local midnight;
+            // without both, which one is next is unknown.
             var up = complication(Complications.COMPLICATION_TYPE_SUNRISE), down = complication(Complications.COMPLICATION_TYPE_SUNSET);
+            if (up == null || down == null) { return none; }
             var ct = System.getClockTime(), now = ct.hour * 3600 + ct.min * 60;
-            var rise = up != null && (down == null || now < up || now >= down);
-            var v = rise ? up : down;
-            if (v == null) { return none; }
-            var t = v.toNumber();
+            var rise = now < up || now >= down;
+            var t = (rise ? up : down).toNumber();
             return [hhmm(t / 3600 % 24, t / 60 % 60), null, str(rise ? Rez.Strings.Rise : Rez.Strings.Set)];
         } else if (id == FLOORS) {
             var info = ActivityMonitor.getInfo(), f = info.floorsClimbed, g = info.floorsClimbedGoal;
@@ -194,6 +230,13 @@ module Fields {
             // Pascals on current firmware; a small value is taken to be hPa already.
             var v = complication(Complications.COMPLICATION_TYPE_SEA_LEVEL_PRESSURE);
             return v == null ? none : [Math.round(v > 2000 ? v / 100.0 : v).toNumber().toString(), null, "hPa"];
+        } else if (id == AIR) {
+            // [aqi, null, category name, category 0-5]. The categories are US AQI, so the app should be set to US.
+            var c = air(), v = c == null ? null : c.value;
+            if (!(v instanceof Number || v instanceof Float || v instanceof Long || v instanceof Double)) { return none; }
+            var n = (v as Numeric).toNumber(), k = 0;
+            while (k < AQI_TOPS.size() && n > AQI_TOPS[k]) { k++; }
+            return [n.toString(), null, str([Rez.Strings.Aqi0, Rez.Strings.Aqi1, Rez.Strings.Aqi2, Rez.Strings.Aqi3, Rez.Strings.Aqi4, Rez.Strings.Aqi5][k] as ResourceId), k];
         } else if (id == MOVE) {
             // Move bar: 0 = active, 1+ = alert (first segment after 1 h idle), 5 = full. The view tracks resets.
             var v = ActivityMonitor.getInfo().moveBarLevel;

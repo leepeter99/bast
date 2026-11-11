@@ -2,7 +2,7 @@ import Toybox.Application;
 import Toybox.Lang;
 import Toybox.WatchUi;
 
-// On-watch settings: time style, the four gauges and the four corner bars. A picker never offers
+// On-watch settings: time style, the four gauges, the four corner bars and the accent. A picker never offers
 // a metric used elsewhere in its group, or a bar metric as a gauge.
 // If getSettingsView rejects Menu2InputDelegate on device, delete this file and the
 // getSettingsView override; phone settings plus the duplicate rules still apply.
@@ -14,9 +14,12 @@ function cornerName(k as Number) as String { return res([Rez.Strings.Bar0, Rez.S
 
 function barName(b as Number) as String { return res([Rez.Strings.B0, Rez.Strings.B1, Rez.Strings.B2, Rez.Strings.B3, Rez.Strings.B4, Rez.Strings.B5, Rez.Strings.B6][b] as ResourceId); }
 
-function styleName(t as Number) as String { return res(t == 1 ? Rez.Strings.T1 : Rez.Strings.T0); }
+function accentName(a as Number) as String { return res([Rez.Strings.A0, Rez.Strings.A1, Rez.Strings.A2, Rez.Strings.A3, Rez.Strings.A4, Rez.Strings.A5][a] as ResourceId); }
 
-function timeStyle() as Number { return Fields.index(Application.Properties.getValue("timeStyle"), 2, 0); }
+function styleName(t as Number) as String { return res([Rez.Strings.T0, Rez.Strings.T1, Rez.Strings.T2][t] as ResourceId); }
+
+// 0 Analog, 1 Hybrid, 2 Digital (Hybrid's digits without hands).
+function timeStyle() as Number { return Fields.index(Application.Properties.getValue("timeStyle"), 3, 0); }
 
 class FieldMenu extends WatchUi.Menu2 {
     function initialize() {
@@ -24,6 +27,7 @@ class FieldMenu extends WatchUi.Menu2 {
         addItem(new WatchUi.MenuItem(res(Rez.Strings.TimeStyle), styleName(timeStyle()), :time, {}));
         addItem(new WatchUi.MenuItem(res(Rez.Strings.Gauges), null, :gauges, {}));
         addItem(new WatchUi.MenuItem(res(Rez.Strings.CornerBars), null, :bars, {}));
+        addItem(new WatchUi.MenuItem(res(Rez.Strings.Accent), accentName(Fields.index(Application.Properties.getValue("accent"), 6, 0)), :accent, {}));
     }
 }
 
@@ -32,10 +36,10 @@ class FieldMenuDelegate extends WatchUi.Menu2InputDelegate {
 
     function onSelect(item as WatchUi.MenuItem) as Void {
         var id = item.getId();
-        if (id == :time) {
-            var menu = new WatchUi.Menu2({:title => res(Rez.Strings.TimeStyle)});
-            for (var t = 0; t < 2; t++) { menu.addItem(new WatchUi.MenuItem(styleName(t), null, t, {})); }
-            WatchUi.pushView(menu, new PickDelegate("timeStyle", item, :style), WatchUi.SLIDE_LEFT);
+        if (id == :time || id == :accent) {
+            var time = id == :time, list = new WatchUi.Menu2({:title => item.getLabel()});
+            for (var a = 0; a < (time ? 3 : 6); a++) { list.addItem(new WatchUi.MenuItem(time ? styleName(a) : accentName(a), null, a, {})); }
+            WatchUi.pushView(list, new PickDelegate(time ? "timeStyle" : "accent", item, time ? :style : :accent), WatchUi.SLIDE_LEFT);
             return;
         }
         var gauges = id == :gauges, menu = new WatchUi.Menu2({:title => item.getLabel()});
@@ -88,7 +92,7 @@ class PickDelegate extends WatchUi.Menu2InputDelegate {
     function onSelect(item as WatchUi.MenuItem) as Void {
         var id = item.getId() as Number;
         Application.Properties.setValue(key, id);
-        parent.setSubLabel(kind == :gauge ? Fields.name(id) : kind == :bar ? barName(id) : styleName(id));
+        parent.setSubLabel(kind == :gauge ? Fields.name(id) : kind == :bar ? barName(id) : kind == :style ? styleName(id) : accentName(id));
         getApp().onSettingsChanged();
         WatchUi.popView(WatchUi.SLIDE_RIGHT);
     }
