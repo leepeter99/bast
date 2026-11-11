@@ -61,6 +61,8 @@ class PantherView extends WatchUi.WatchFace {
     var wasFull as Array<Boolean?> = [null, null, null, null];
     var shineUntil as Array<Number> = [0, 0, 0, 0];
     // Icon transform (centre, scale, rotation), set by drawIcon for its helpers.
+    // Charge 0..1, read with the other readings once a minute, for the battery icon.
+    var battery as Float = 0.0;
     var icX as Float = 0.0;
     var icY as Float = 0.0;
     var icK as Float = 1.0;
@@ -112,6 +114,7 @@ class PantherView extends WatchUi.WatchFace {
             for (var i = 0; i < 4; i++) {
                 barValues[i] = bars[i] == 0 ? null : read(Fields.BAR_IDS[bars[i]] as Number);
             }
+            battery = System.getSystemStats().battery / 100;
             cachedMin = m;
         }
         dc.drawBitmap(0, 0, edge());
@@ -217,9 +220,7 @@ class PantherView extends WatchUi.WatchFace {
         return null;
     }
 
-    function dim(c as Number, f as Float) as Number {
-        return (((c >> 16) & 0xff) * f).toNumber() << 16 | (((c >> 8) & 0xff) * f).toNumber() << 8 | ((c & 0xff) * f).toNumber();
-    }
+    function dim(c as Number, f as Float) as Number { return mix(c, 0, 1 - f); }
 
 
     // Ticks and bar tracks only change with settings, so they are drawn once. The graphics pool may purge it.
@@ -291,7 +292,8 @@ class PantherView extends WatchUi.WatchFace {
         dc.drawArc(CX, CX, BAR_R, Graphics.ARC_CLOCKWISE, (450 - a - idx * w - 1) % 360, (450 - a - (idx + 1) * w + 1) % 360);
     }
 
-    // Smooth fill of bar k to fraction f, from its fill end, pen w px before scaling. drawArc truncates to whole degrees.
+    // Smooth fill of bar k to fraction f, from its fill end, pen w px before scaling.
+    // ponytail: drawArc truncates to whole degrees, so a fill steps by 1 degree; draw sub-degree ends as lines if steps show.
     function drawFill(dc as Dc, k as Number, f as Float, col as Number, w as Number) as Void {
         var a0 = SPANS[k][0] + 1, a1 = SPANS[k][1] - 1, len = ((f > 1 ? 1 : f) * (a1 - a0)).toNumber();
         if (len < 1) { return; }
@@ -348,7 +350,7 @@ class PantherView extends WatchUi.WatchFace {
                     lit = n;
                     col = fresh ? tint(GLOW) : accent();
                     // White CHARGED like the other bars' labels; during an alert the words take a dimmed hand lilac.
-                    num = Fields.str(Rez.Strings.Active);
+                    num = Fields.str(Rez.Strings.Charged);
                 } else {
                     var lv = moveLevel < n ? moveLevel : n;
                     lit = n - lv;
@@ -527,8 +529,12 @@ class PantherView extends WatchUi.WatchFace {
             pl(dc, [[6, 0], [6, 1]], false); pl(dc, [[0, 5], [1, 5]], false); pl(dc, [[2, 1], [3, 2]], false); pl(dc, [[10, 1], [9, 2]], false);
             plate(dc, [[2, 15], [0, 12], [3, 9], [7, 9], [9, 7], [13, 8], [16, 12], [15, 15]], col, bg);
         } else if (id == Fields.BATTERY) {
+            // The body fills with the charge, dimmed by quarter like the bars (ADR 0014).
             pl(dc, [[0, 4], [13, 4], [13, 12], [0, 12]], true);
-            pl(dc, [[15, 6], [15, 10]], false); fp(dc, [[3, 10], [7, 6], [10, 10]]);
+            pl(dc, [[15, 6], [15, 10]], false);
+            var b = battery, bx = 2.5 + 8 * (b > 1 ? 1 : b);
+            dc.setColor(b < 1 ? dim(col, QUARTERS[(b * 4).toNumber()] as Float) : col, Graphics.COLOR_TRANSPARENT);
+            if (b > 0.02) { fp(dc, [[2.5, 6.5], [bx, 6.5], [bx, 9.5], [2.5, 9.5]]); }
         } else if (id == Fields.CALORIES) {
             pl(dc, [[8, 0], [13, 7], [13, 11], [9, 16], [5, 16], [2, 11], [3, 7], [6, 9]], true);
             fp(dc, [[6, 14], [8, 10], [10, 14]]);

@@ -7,7 +7,8 @@ import Toybox.System;
 import Toybox.Time;
 import Toybox.WatchUi;
 
-// WatchFace + Renderer: data first, hands last over the fixed gauges. Always-on mode follows ADR 0003, corner bars ADR 0005.
+// WatchFace + Renderer: data first, hands last over the gauges, which never leave their homes.
+// Fixed homes and Pulse's bars follow ingwe ADR 0001, the Digital style ingwe ADR 0002, always-on mode Pulse ADR 0003.
 class PantherView extends WatchUi.WatchFace {
     var S as Float = 1.0;
     var CX as Float = 227.0;
@@ -21,8 +22,14 @@ class PantherView extends WatchUi.WatchFace {
     const FROM_START = [true, false, false, true];
     const TOP = [true, true, false, false];
     var BAR_R as Float = 214.0;
-    var LABEL_R as Float = 193.0;
+    var LABEL_R as Float = 190.0;
     const TRACK = 0x24152f;
+    const BREATH = [0.3, 0.55, 0.8, 0.55];  // drained Move: the first cell's brightness, one step per second
+    // GLOW is the hands' lilac (a fresh recharge, absorbed energy); ALERT that lilac dimmed for the alert words.
+    const GLOW = 0xe5caff;
+    // Smooth bars below full: the accent dimmed by quarter of fill, so only a full bar reaches the accent (ADR 0014).
+    const QUARTERS = [0.5, 0.65, 0.8, 0.9];
+    const ALERT = 0xa88fc0;
     const SHIFTS = [[0, 0], [2, 0], [2, 2], [0, 2]];
     // Hand outlines from the prototype SVG, relative to the centre, pointing at 12.
     const HOUR = [[-9, 6], [-10, -94], [0, -115], [10, -94], [9, 6]];
@@ -34,36 +41,50 @@ class PantherView extends WatchUi.WatchFace {
     var fields as Array<Number> = [7, 5, 4, 0];
     var bars as Array<Number> = [1, 3, 2, 4];
     var barValues as Array = [null, null, null, null];
-    var hybrid as Boolean = false;
     var accentIdx as Number = 0;
+    // 0 Analog, 1 Hybrid (digits under the hands), 2 Digital (the same digits, no hands).
+    var style as Number = ANALOG;
     var circles as Array = [];
     var values as Array = [null, null, null, null];
     var cachedMin as Number = -1;
     var fonts as Dictionary<Number, Graphics.VectorFont?> = {};
     var edgeRef as Graphics.BufferedBitmapReference?;
-    // Move alert state, sampled once a minute in both modes (ADR 0005). Level -1 = unavailable.
+    // Move alert state: level read every update, steps once a minute (ADR 0005). Level -1 = unavailable.
     var moveLevel as Number = -1;
     var moveSteps as Number? = null;
     var moveMin as Number = -1;
     var walking as Boolean = false;
     var resetUntil as Number = 0;
+    // Goal bars shine for RESET_HOLD after the face sees them fill. null = not seen yet, so a bar already full never shines.
+    var wasFull as Array<Boolean?> = [null, null, null, null];
+    var shineUntil as Array<Number> = [0, 0, 0, 0];
+    // Icon transform (centre, scale, rotation), set by drawIcon for its helpers.
+    // Charge 0..1, read with the other readings once a minute, for the battery icon.
+    var battery as Float = 0.0;
+    var icX as Float = 0.0;
+    var icY as Float = 0.0;
+    var icK as Float = 1.0;
+    var icS as Float = 0.0;
+    var icC as Float = 1.0;
 
     function initialize() {
         WatchFace.initialize();
         var w = System.getDeviceSettings().screenWidth;
         Layout.setup(w);
-        S = Layout.S; CX = Layout.CX; BAR_R = 214.0 * S; LABEL_R = 193.0 * S;
+        S = Layout.S; CX = Layout.CX; BAR_R = 214.0 * S; LABEL_R = 190.0 * S;
         loadSettings();
     }
 
     function loadSettings() as Void {
         for (var i = 0; i < 4; i++) { fields[i] = Fields.field(i); }
         bars = Fields.bars();
-        // Hybrid: the digits take the right side, so the right gauge goes.
-        hybrid = Fields.index(Application.Properties.getValue("timeStyle"), 2, 0) == 1;
-        if (hybrid) { fields[1] = -1; }
+        style = timeStyle();
+        // Hybrid and Digital: the digits take the right side, so the right gauge and both right bars go.
+        if (style != ANALOG) { fields[1] = -1; bars[1] = 0; bars[3] = 0; }
         accentIdx = Fields.index(Application.Properties.getValue("accent"), ACCENTS.size(), 0);
-        circles = Layout.fit(fields, hybrid ? Layout.DIGITS_X : 9999.0);
+        circles = Layout.fit(fields, style != ANALOG ? Layout.DIGITS_X : 9999.0);
+        wasFull = [null, null, null, null];
+        shineUntil = [0, 0, 0, 0];
         cachedMin = -1;
         edgeRef = null;
     }
@@ -73,11 +94,12 @@ class PantherView extends WatchUi.WatchFace {
     function onExitSleep() as Void { sleeping = false; cachedMin = -1; WatchUi.requestUpdate(); }
 
     function onUpdate(dc as Dc) as Void {
-        var ct = System.getClockTime(), m = (ct.hour % 12) * 60 + ct.min;
+        var c = System.getClockTime(), ct = [c.hour, c.min, c.sec] as Array<Number>, m = (ct[0] % 12) * 60 + ct[1];
         // ADR 0003: no anti-aliasing in always-on mode, so edge pixels don't bleed across shifts.
         dc.setAntiAlias(!sleeping);
         var em = Time.now().value() / 60;
-        if (em != moveMin) { moveMin = em; trackMove(); }
+        trackMove(em != moveMin, em - moveMin == 1);
+        moveMin = em;
         if (sleeping) {
             dc.setColor(Graphics.COLOR_BLACK, Graphics.COLOR_BLACK);
             dc.clear();
@@ -89,28 +111,73 @@ class PantherView extends WatchUi.WatchFace {
                 values[i] = fields[i] < 0 ? null : Fields.read(fields[i]);
                 barValues[i] = bars[i] == 0 ? null : Fields.read(Fields.BAR_IDS[bars[i]] as Number);
             }
+            battery = System.getSystemStats().battery / 100;
             cachedMin = m;
         }
         dc.drawBitmap(0, 0, edge());
-        drawBars(dc, ct.sec);
+        drawBars(dc, ct[2]);
         for (var i = 0; i < 4; i++) {
             if (circles[i] == null) { continue; }
             if (fields[i] == Fields.HEART) { values[i] = Fields.read(Fields.HEART); }
             drawGauge(dc, fields[i], circles[i] as Array<Float>, values[i] as Array);
         }
-        if (hybrid) { drawDigits(dc, ct); }
+        if (style != ANALOG) { drawDigits(dc, ct); }
+        if (style == DIGITAL) { return; }
         var hs = Layout.hands(m);
         drawHand(dc, HOUR, hs[0][0], CX, CX, true);
         drawHand(dc, MINUTE, hs[1][0], CX, CX, true);
-        drawSeconds(dc, ct.sec * 6.0);
-        dc.setColor(0xe5caff, Graphics.COLOR_TRANSPARENT);
+        drawSeconds(dc, ct[2] * 6.0);
+        dc.setColor(tint(GLOW), Graphics.COLOR_TRANSPARENT);
         dc.fillCircle(CX, CX, 10 * S);
         dc.setColor(0x283334, Graphics.COLOR_TRANSPARENT);
-        dc.setPenWidth(4);
+        dc.setPenWidth((4 * S + 0.5).toNumber());
         dc.drawCircle(CX, CX, 10 * S);
     }
 
     function accent() as Number { return ACCENTS[accentIdx] as Number; }
+
+    // Recolours the purple theme to the accent: same lightness, accent hue, brightest shades toward white.
+    // Accent 0 is the purple the theme was drawn in, so it passes through untouched.
+    function tint(c as Number) as Number {
+        if (accentIdx == 0) { return c; }
+        var a = accent(), r = (c >> 16) & 0xff, g = (c >> 8) & 0xff, b = c & 0xff;
+        var f = (r > g ? (r > b ? r : b) : (g > b ? g : b)) / 255.0, w = f > 0.8 ? (f - 0.8) * 2.5 : 0.0;
+        var out = 0;
+        for (var sh = 16; sh >= 0; sh -= 8) {
+            var v = ((a >> sh) & 0xff) * f;
+            out = out << 8 | (v + (255 - v) * w).toNumber();
+        }
+        return out;
+    }
+
+    // a blended toward b by f (0 = a, 1 = b).
+    function mix(a as Number, b as Number, f as Float) as Number {
+        var out = 0;
+        for (var sh = 16; sh >= 0; sh -= 8) {
+            var x = (a >> sh) & 0xff;
+            out = out << 8 | (x + (((b >> sh) & 0xff) - x) * f).toNumber();
+        }
+        return out;
+    }
+
+    // High stress, in the bar and the gauge: orange, or red on the amber accent.
+    function hot() as Number { return accentIdx == AMBER ? 0xff5a5a : 0xff993d; }
+
+    // US AQI category colours (Fields.AQI_TOPS). EPA's purple and maroon are brightened to stay readable on the gauge plate.
+    const AQI_COLOURS = [0x00e400, 0xffff00, 0xff7e00, 0xff0000, 0xb45ad2, 0xc0304a];
+
+    // A gauge's ring and caption colour in place of the accent, or null: high stress, or the air quality category.
+    function warn(id as Number, d as Array) as Number? {
+        var p = d[1] as Float?;
+        if (id == Fields.STRESS && p != null && p > 0.75) { return hot(); }
+        if (id == Fields.AIR && d.size() > 3) {
+            return AQI_COLOURS[d[3] as Number] as Number;
+        }
+        return null;
+    }
+
+    function dim(c as Number, f as Float) as Number { return mix(c, 0, 1 - f); }
+
 
     // Ticks and bar tracks only change with settings, so they are drawn once. The graphics pool may purge it.
     function edge() as Graphics.BufferedBitmap {
@@ -153,17 +220,18 @@ class PantherView extends WatchUi.WatchFace {
             var cardinal = i % 15 == 0, major = i % 5 == 0, a = deg * Math.PI / 180, s = Math.sin(a), c = Math.cos(a);
             var r0 = (cardinal ? 225 : major ? 224 : 223) * S, r1 = (cardinal ? 200 : major ? 208 : 216) * S;
             dc.setPenWidth(((cardinal ? 6 : major ? 4 : 2) * S + 0.5).toNumber());
-            dc.setColor(cardinal ? 0xe5cff6 : major ? 0x9a80ad : 0x4a2f5a, Graphics.COLOR_TRANSPARENT);
+            dc.setColor(tint(cardinal ? 0xe5cff6 : major ? 0x9a80ad : 0x4a2f5a), Graphics.COLOR_TRANSPARENT);
             dc.drawLine(CX + s * r0, CX - c * r0, CX + s * r1, CX - c * r1);
         }
         for (var k = 0; k < 4; k++) {
             if (bars[k] == 0) { continue; }
             var n = segments(k);
-            for (var j = 0; j < n; j++) { drawSegment(dc, k, j, n, TRACK); }
+            for (var j = 0; j < n; j++) { drawSegment(dc, k, j, n, tint(TRACK)); }
         }
     }
 
-    function segments(k as Number) as Number { return Fields.BAR_IDS[bars[k]] == Fields.MOVE ? 5 : 10; }
+    // Move alert keeps five cells (ADR 0007); every other bar is one smooth track.
+    function segments(k as Number) as Number { return Fields.BAR_IDS[bars[k]] == Fields.MOVE ? 5 : 1; }
 
     // Segment j of bar k, counted from the bar's fill end. 1 degree gap on each side.
     function drawSegment(dc as Dc, k as Number, j as Number, n as Number, col as Number) as Void {
@@ -174,88 +242,129 @@ class PantherView extends WatchUi.WatchFace {
         dc.drawArc(CX, CX, BAR_R, Graphics.ARC_CLOCKWISE, (450 - a - idx * w - 1) % 360, (450 - a - (idx + 1) * w + 1) % 360);
     }
 
-    // Garmin exposes only the level, never its reset rule. Walking = enough steps in the last minute
-    // while the alert is up; a drop to 0 shows RESET for a few minutes.
-    function trackMove() as Void {
-        var info = ActivityMonitor.getInfo(), lvl = info.moveBarLevel, st = info.steps, now = Time.now().value();
-        if (lvl == null) { moveLevel = -1; return; }
-        if (moveLevel > 0 && lvl == 0) { resetUntil = now + RESET_HOLD; }
-        walking = lvl > 0 && st != null && moveSteps != null && st - moveSteps >= WALKING_STEPS;
-        moveLevel = lvl;
-        moveSteps = st;
+    // Smooth fill of bar k to fraction f, from its fill end, pen w px before scaling.
+    // ponytail: drawArc truncates to whole degrees, so a fill steps by 1 degree; draw sub-degree ends as lines if steps show.
+    function drawFill(dc as Dc, k as Number, f as Float, col as Number, w as Number) as Void {
+        var a0 = SPANS[k][0] + 1, a1 = SPANS[k][1] - 1, len = ((f > 1 ? 1 : f) * (a1 - a0)).toNumber();
+        if (len < 1) { return; }
+        var from = FROM_START[k] ? a0 : a1 - len;
+        dc.setPenWidth((w * S).toNumber());
+        dc.setColor(col, Graphics.COLOR_TRANSPARENT);
+        dc.drawArc(CX, CX, BAR_R, Graphics.ARC_CLOCKWISE, (450 - from) % 360, (450 - from - len) % 360);
     }
 
-    // Lit segments and the label inside each bar. Every bar reads full = good, so Move drains.
+    // Garmin exposes only the level, never its reset rule. The level is read every update, so the bar
+    // drops as soon as Garmin's own Move alert fires. Walking = enough steps in the last minute while the
+    // alert is up, so steps are sampled once a minute and only count when the previous sample is exactly
+    // a minute old (fresh); a drop to 0 shows RESET for a few minutes.
+    function trackMove(newMin as Boolean, fresh as Boolean) as Void {
+        var info = ActivityMonitor.getInfo(), lvl = info.moveBarLevel, st = info.steps;
+        if (lvl == null) { moveLevel = -1; return; }
+        if (moveLevel > 0 && lvl == 0) { resetUntil = Time.now().value() + RESET_HOLD; }
+        if (newMin) {
+            walking = fresh && lvl > 0 && st != null && moveSteps != null && st - moveSteps >= WALKING_STEPS;
+            moveSteps = st;
+        }
+        moveLevel = lvl;
+    }
+
+    // The fill (lit cells for Move) and the label inside each bar. Every bar reads full = good, so Move drains.
     function drawBars(dc as Dc, sec as Number) as Void {
-        var f = font((13 * S).toNumber());
         for (var k = 0; k < 4; k++) {
             var d = barValues[k] as Array?;
             if (bars[k] == 0 || d == null) { continue; }
-            var id = Fields.BAR_IDS[bars[k]] as Number, n = segments(k), p = d[1] as Float?, col = accent(), textCol = 0xf5f6f7, label = "";
-            var lit = p == null ? 0 : (p * n).toNumber();
+            var id = Fields.BAR_IDS[bars[k]] as Number, n = segments(k), p = d[1] as Float?, col = accent(), textCol = 0xf5f6f7, pulse = -1, pulseCol = tint(GLOW);
+            var num = "" as String;
+            // Every bar fills with its value; Stress fills as stress rises (0-100).
+            var lit = 0, fill = p == null ? 0.0 : p, breathe = false;
+            // Brightness follows how good the reading is: Stress dims as it rises, the others brighten as they fill.
+            var good = id == Fields.STRESS ? 1 - fill : fill;
+            if (id != Fields.MOVE && good < 1) { col = dim(col, QUARTERS[good > 0 ? (good * 4).toNumber() : 0] as Float); }
             if (id == Fields.STEPS) {
-                label = Fields.str(Rez.Strings.LSteps) + " " + d[(d.size() > 3 ? 3 : 0)];
+                num = (d[(d.size() > 3 ? 3 : 0)] as Object).toString();
             } else if (id == Fields.BODY) {
-                label = Fields.str(Rez.Strings.LBody) + " " + d[0];
+                num = d[0] as String;
+                // Nearly flat: REST in the alert words, and under 5% the bar's first fifth breathes like a drained Move cell.
+                if (p != null && p < 0.1) { num = Fields.str(Rez.Strings.Rest) + " " + num; textCol = tint(ALERT); }
+                if (p != null && p < 0.05) { breathe = true; pulseCol = mix(tint(TRACK), accent(), BREATH[sec % 4] as Float); }
             } else if (id == Fields.STRESS) {
-                // Full = calm, like the other bars.
-                lit = p == null ? 0 : ((1 - p) * n).toNumber();
-                label = Fields.str(Rez.Strings.LStress) + " " + d[0];
-                if (p != null && p > 0.75) { col = accentIdx == AMBER ? 0xff5a5a : 0xff993d; }
+                num = d[0] as String;
+                if (p != null && p > 0.75) { col = hot(); }
             } else if (id == Fields.FLOORS) {
-                label = Fields.str(Rez.Strings.LFloors) + " " + d[0];
+                num = d[0] as String;
             } else if (id == Fields.MOVE) {
-                if (moveLevel < 0) { lit = 0; label = Fields.str(Rez.Strings.LMove) + " --"; }
+                if (moveLevel < 0) { lit = 0; num = "--"; }
                 else if (moveLevel == 0) {
+                    var fresh = Time.now().value() < resetUntil;
                     lit = n;
-                    label = Fields.str(Time.now().value() < resetUntil ? Rez.Strings.Reset : Rez.Strings.Active);
+                    col = fresh ? tint(GLOW) : accent();
+                    // White CHARGED like the other bars' labels; during an alert the words take a dimmed hand lilac.
+                    num = Fields.str(Rez.Strings.Charged);
                 } else {
-                    lit = n - moveLevel < 1 ? 1 : n - moveLevel;
-                    col = moveLevel >= n ? 0xff5a5a : 0xff993d;
-                    textCol = col;
-                    label = Fields.str(walking ? Rez.Strings.KeepGoing : Rez.Strings.MoveAlert);
-                    // Blink the last segment while walking it off; high-power mode only, as this path is.
-                    if (walking && sec % 2 == 1) { lit -= 1; }
+                    var lv = moveLevel < n ? moveLevel : n;
+                    lit = n - lv;
+                    col = dim(accent(), 1.0 - lv * 0.1);
+                    textCol = tint(ALERT);
+                    num = !walking && lit == 0 ? Fields.str(Rez.Strings.Drained)
+                        : Fields.str(walking ? Rez.Strings.KeepGoing : Rez.Strings.MoveAlert) + " " + moveLevel + "/5";
+                    // Walking it off: absorbed energy runs along the empty segments, one per second in active mode.
+                    // Drained: the cells show the bare track and the first one breathes in the accent.
+                    if (walking) { pulse = lit + sec % (n - lit); }
+                    else if (lit == 0) { pulse = 0; pulseCol = mix(tint(TRACK), accent(), BREATH[sec % 4] as Float); }
                 }
             } else if (p != null && p >= 1) {
-                label = Fields.str(Rez.Strings.Recharged);
-                col = 0xe5caff;
+                num = Fields.str(Rez.Strings.Recharged);
             } else {
-                label = Fields.str(Rez.Strings.LRecovery) + " " + d[0];
+                num = d[0] as String;
+            }
+            if (id != Fields.MOVE) {
+                // Recovery, Steps and Floors shine on filling: lilac-white over a wider dim accent halo, then the accent.
+                var now = Time.now().value(), full = fill >= 1;
+                if (full && wasFull[k] == false && id != Fields.BODY && id != Fields.STRESS) { shineUntil[k] = now + RESET_HOLD; }
+                wasFull[k] = full;
+                if (now < shineUntil[k]) { drawFill(dc, k, 1.0, dim(accent(), 0.6), 24); col = tint(GLOW); }
+                if (breathe) { drawFill(dc, k, 0.2, pulseCol, 16); }
+                drawFill(dc, k, fill, col, 16);
             }
             for (var j = 0; j < lit && j < n; j++) { drawSegment(dc, k, j, n, col); }
-            if (f == null) { continue; }
+            if (pulse >= 0) { drawSegment(dc, k, pulse, n, pulseCol); }
+            // Icon, then the number, centred on the bar's middle along the label arc. The icon turns with the
+            // arc so it stands upright beside the text, which reads clockwise on top and counter-clockwise below.
+            // ponytail: text width estimated at 0.5 em per glyph; measure it if labels look off-centre.
+            var mid = (SPANS[k][0] + SPANS[k][1]) / 2.0, dir = TOP[k] ? 1 : -1, deg = 180 / Math.PI / LABEL_R;
+            // As large as stays clear of the gauges, at most 32 px (ingwe ADR 0003): icon + gap + text in a 135 px budget.
+            var fs = 135.0 / (1 + num.length() * 0.5), sz = (fs < 32 ? fs : 32).toNumber() / 2 * 2, f = font((sz * S).toNumber());
+            var iw = sz * S, tw = num.length() * sz * 0.5 * S, gap = num.length() > 0 ? 6 * S : 0, w = iw + gap + tw;
+            var ia = mid + dir * (iw - w) / 2 * deg, ta = mid + dir * (iw + gap + tw / 2 - w / 2) * deg, a = ia * Math.PI / 180;
+            // Icons always take the accent; only the words carry an alert colour.
+            // The icon's outer edge stays 3 px inside the bar (inner edge BAR_R - 8).
+            var ik = sz / 16.5 * S, ir = BAR_R - 11 * S - 8 * ik;
+            drawIcon(dc, id, CX + Math.sin(a) * ir, CX - Math.cos(a) * ir, ik, TOP[k] ? ia : ia + 180, accent(), Graphics.COLOR_BLACK);
+            if (f == null || num.length() == 0) { continue; }
             dc.setColor(textCol, Graphics.COLOR_TRANSPARENT);
-            dc.drawRadialText(CX, CX, f, label as String, Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER,
-                (450 - (SPANS[k][0] + SPANS[k][1]) / 2) % 360, LABEL_R,
+            dc.drawRadialText(CX, CX, f, num, Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER,
+                (450 - ta).toNumber() % 360, LABEL_R,
                 TOP[k] ? Graphics.RADIAL_TEXT_DIRECTION_CLOCKWISE : Graphics.RADIAL_TEXT_DIRECTION_COUNTER_CLOCKWISE);
         }
     }
 
-    // Hybrid: stacked hours, minutes and seconds right of centre, under the hands.
-    function drawDigits(dc as Dc, ct as System.ClockTime) as Void {
-        dc.setColor(0xf5f6f7, Graphics.COLOR_TRANSPARENT);
-        text(dc, 345 * S, 178 * S, 92, Fields.hour(ct.hour));
-        text(dc, 345 * S, 262 * S, 92, ct.min.format("%02d"));
-        text(dc, 345 * S, 322 * S, 36, ct.sec.format("%02d"));
-    }
-
     // Chronos-style subdial: a flat plate inside a darker rim, thin progress ring.
     function drawGauge(dc as Dc, id as Number, c as Array<Float>, d as Array) as Void {
-        var x = c[0], y = c[1], r = c[2], value = d[0] as String, p = d[1] as Float?;
-        dc.setColor(0x0b0710, Graphics.COLOR_TRANSPARENT);
+        var x = c[0], y = c[1], r = c[2], value = d[0] as String, p = d[1] as Float?, hi = warn(id, d);
+        dc.setColor(tint(0x0b0710), Graphics.COLOR_TRANSPARENT);
         dc.fillCircle(x, y, r);
-        dc.setColor(0x1a1224, Graphics.COLOR_TRANSPARENT);
+        dc.setColor(tint(0x1a1224), Graphics.COLOR_TRANSPARENT);
         dc.fillCircle(x, y, r - 5 * S);
         if (p != null) {
-            dc.setPenWidth(3);
-            dc.setColor(TRACK, Graphics.COLOR_TRANSPARENT);
-            dc.drawCircle(x, y, r - 3);
-            dc.setColor(id == Fields.STRESS && p > 0.75 ? (accentIdx == AMBER ? 0xff5a5a : 0xff993d) : accent(), Graphics.COLOR_TRANSPARENT);
-            if (p >= 1) { dc.drawCircle(x, y, r - 3); }
+            var rr = r - 3 * S;
+            dc.setPenWidth((3 * S + 0.5).toNumber());
+            dc.setColor(tint(TRACK), Graphics.COLOR_TRANSPARENT);
+            dc.drawCircle(x, y, rr);
+            dc.setColor(hi != null ? hi : accent(), Graphics.COLOR_TRANSPARENT);
+            if (p >= 1) { dc.drawCircle(x, y, rr); }
             else if (p > 0) {
                 var end = (90 - p * 360).toNumber();
-                dc.drawArc(x, y, r - 3, Graphics.ARC_CLOCKWISE, 90, end < 0 ? end + 360 : end);
+                dc.drawArc(x, y, rr, Graphics.ARC_CLOCKWISE, 90, end < 0 ? end + 360 : end);
             }
         }
         if (id == Fields.DATE) {
@@ -263,25 +372,27 @@ class PantherView extends WatchUi.WatchFace {
             var today = (d[3] as Number) - 1, days = "SMTWTFS";
             for (var i = 0; i < 7; i++) {
                 var a = i * 2 * Math.PI / 7, k = (today + i) % 7;
-                dc.setColor(i == 0 ? accent() : 0x9278a6, Graphics.COLOR_TRANSPARENT);
+                dc.setColor(i == 0 ? accent() : tint(0x9278a6), Graphics.COLOR_TRANSPARENT);
                 text(dc, x + Math.sin(a) * (r - 14 * S), y - Math.cos(a) * (r - 14 * S), (r * 0.2 / S + 6).toNumber() / 2 * 2, days.substring(k, k + 1) as String);
             }
             dc.setColor(0xf5f6f7, Graphics.COLOR_TRANSPARENT);
             text(dc, x, y - r * 0.2, (r * 0.66 / S).toNumber() / 2 * 2, value);
-            dc.setColor(0xb9a6c9, Graphics.COLOR_TRANSPARENT);
+            dc.setColor(tint(0xb9a6c9), Graphics.COLOR_TRANSPARENT);
             text(dc, x, y + r * 0.27, (r * 0.34 / S).toNumber() / 2 * 2, d[2] as String);
             return;
         }
         // Icon, value, then the optional second line, stacked like the Chronos subdials.
         var sub = d[2] != null;
-        drawIcon(dc, id, x - 7, y - r * (sub ? 0.62 : 0.55) - 4);
-        var size = r * (sub ? 0.56 : 0.64) / S, fitSize = r * 1.5 / S / (value.length() * 0.62);
+        drawIcon(dc, id, x, y - r * (sub ? 0.6 : 0.52) + 3 * S, r / 38, 0.0, accent(), tint(0x1a1224));
+        var size = r * (sub ? 0.6 : 0.72) / S, fitSize = r * 1.5 / S / (value.length() * 0.62);
         dc.setColor(0xf5f6f7, Graphics.COLOR_TRANSPARENT);
         // Even sizes only, to bound the font cache.
         text(dc, x, y + (sub ? -r * 0.04 : 2 * S), (size < fitSize ? size : fitSize).toNumber() / 2 * 2, value);
         if (sub) {
-            dc.setColor(id == Fields.WEATHER ? 0xf5f6f7 : accent(), Graphics.COLOR_TRANSPARENT);
-            text(dc, x, y + r * 0.5, (r * 0.34 / S).toNumber() / 2 * 2, d[2] as String);
+            dc.setColor(id == Fields.WEATHER ? 0xf5f6f7 : hi != null ? hi : accent(), Graphics.COLOR_TRANSPARENT);
+            // Long captions (VERY UNHEALTHY) shrink to the gauge's width at that height.
+            var cap = d[2] as String, cs = r * 0.34 / S, cf = r * 1.5 / S / (cap.length() * 0.62);
+            text(dc, x, y + r * 0.5, (cs < cf ? cs : cf).toNumber() / 2 * 2, cap);
         }
     }
 
@@ -292,12 +403,12 @@ class PantherView extends WatchUi.WatchFace {
             pts.add([cx + px * c - py * s, cy + px * s + py * c]);
         }
         if (filled) {
-            dc.setColor(0xe5caff, Graphics.COLOR_TRANSPARENT);
+            dc.setColor(tint(GLOW), Graphics.COLOR_TRANSPARENT);
             dc.fillPolygon(pts);
-            dc.setColor(0x553166, Graphics.COLOR_TRANSPARENT);
-            dc.setPenWidth(3);
+            dc.setColor(tint(0x553166), Graphics.COLOR_TRANSPARENT);
+            dc.setPenWidth((3 * S + 0.5).toNumber());
         } else {
-            dc.setColor(0x84718f, Graphics.COLOR_TRANSPARENT);
+            dc.setColor(tint(0x84718f), Graphics.COLOR_TRANSPARENT);
             dc.setPenWidth(1);
         }
         for (var i = 0; i < pts.size(); i++) {
@@ -309,7 +420,7 @@ class PantherView extends WatchUi.WatchFace {
     function drawSeconds(dc as Dc, deg as Float) as Void {
         var a = deg * Math.PI / 180, s = Math.sin(a), c = Math.cos(a);
         dc.setColor(accent(), Graphics.COLOR_TRANSPARENT);
-        dc.setPenWidth(2);
+        dc.setPenWidth((2 * S + 0.5).toNumber());
         dc.drawLine(CX - s * 25 * S, CX + c * 25 * S, CX + s * 184 * S, CX - c * 184 * S);
         dc.setColor(0x08030d, Graphics.COLOR_TRANSPARENT);
         dc.fillCircle(CX - s * 20 * S, CX + c * 20 * S, 4 * S);
@@ -317,7 +428,18 @@ class PantherView extends WatchUi.WatchFace {
         dc.drawCircle(CX - s * 20 * S, CX + c * 20 * S, 4 * S);
     }
 
+    // Hybrid and Digital: stacked hours, minutes and seconds right of centre.
+    // Above them, the battery icon at the size it has in a gauge beside the digits.
+    function drawDigits(dc as Dc, ct as Array<Number>) as Void {
+        drawIcon(dc, Fields.BATTERY, 345 * S, 116 * S, Layout.radius(Layout.DIGITS_X) / 38, 0.0, accent(), Graphics.COLOR_BLACK);
+        dc.setColor(0xf5f6f7, Graphics.COLOR_TRANSPARENT);
+        text(dc, 345 * S, 178 * S, 92, Fields.hour(ct[0]));
+        text(dc, 345 * S, 262 * S, 92, ct[1].format("%02d"));
+        text(dc, 345 * S, 322 * S, 36, ct[2].format("%02d"));
+    }
+
     // ADR 0003: 1 px outlines, no filled hub, frame shifted by minute so no pixel stays lit 3 updates.
+    // Same in every time style, Digital included (ingwe ADR 0002).
     function drawAlwaysOn(dc as Dc, m as Number) as Void {
         var sh = SHIFTS[m % 4], cx = CX + sh[0], cy = CX + sh[1], hs = Layout.hands(m);
         drawHand(dc, HOUR_AOD, hs[0][0], cx, cy, false);
@@ -325,88 +447,130 @@ class PantherView extends WatchUi.WatchFace {
         dc.drawCircle(cx, cy, 6 * S);
     }
 
-    // Icons from the prototype's dataIcon, in a 14x14 box at (ox, oy).
-    function drawIcon(dc as Dc, id as Number, ox as Numeric, oy as Numeric) as Void {
-        dc.setColor(accent(), Graphics.COLOR_TRANSPARENT);
-        dc.setPenWidth(2);
-        if (id == Fields.HEART || id == Fields.RESTING) {
-            var heart = [[7, 13], [1, 7], [0, 3], [2, 0], [5, 0], [7, 3], [9, 0], [12, 0], [14, 3], [13, 7]];
-            if (id == Fields.HEART) { dc.fillPolygon(offset(heart, ox, oy)); }
-            else { poly(dc, heart, ox, oy, true); line(dc, ox, oy, 4, 7, 10, 7); }
-        } else if (id == Fields.BATTERY) {
-            dc.drawRectangle(ox, oy + 2, 12, 9);
-            line(dc, ox, oy, 14, 5, 14, 8);
-            line(dc, ox, oy, 3, 5, 3, 8); line(dc, ox, oy, 6, 5, 6, 8); line(dc, ox, oy, 9, 5, 9, 8);
-        } else if (id == Fields.WEATHER) {
-            // Sun behind a cloud, as on the Chronos weather subdial.
-            dc.drawCircle(ox + 5, oy + 5, 3);
-            line(dc, ox, oy, 5, -1, 5, 0); line(dc, ox, oy, -1, 5, 0, 5); line(dc, ox, oy, 1, 1, 2, 2); line(dc, ox, oy, 9, 1, 8, 2);
-            dc.setColor(0x1c1426, Graphics.COLOR_TRANSPARENT);
-            dc.fillRoundedRectangle(ox + 2, oy + 7, 13, 7, 3);
-            dc.setColor(accent(), Graphics.COLOR_TRANSPARENT);
-            dc.drawRoundedRectangle(ox + 2, oy + 7, 13, 7, 3);
-        } else if (id == Fields.SUNRISE) {
-            dc.drawCircle(ox + 7, oy + 6, 3);
-            line(dc, ox, oy, 7, 0, 7, 1); line(dc, ox, oy, 7, 11, 7, 12);
-            line(dc, ox, oy, 0, 6, 1, 6); line(dc, ox, oy, 13, 6, 14, 6);
-            line(dc, ox, oy, 2, 1, 3, 2); line(dc, ox, oy, 11, 10, 12, 11);
-            line(dc, ox, oy, 2, 11, 3, 10); line(dc, ox, oy, 11, 2, 12, 1);
-            line(dc, ox, oy, 0, 13, 14, 13);
-        } else if (id == Fields.ZONE) {
-            dc.drawCircle(ox + 7, oy + 7, 6);
-            dc.drawEllipse(ox + 7, oy + 7, 2, 6);
-            line(dc, ox, oy, 1, 7, 13, 7);
-        } else if (id == Fields.FLOORS) {
-            poly(dc, [[0, 13], [4, 13], [4, 9], [8, 9], [8, 5], [12, 5], [12, 1], [14, 1]], ox, oy, false);
-        } else if (id == Fields.PULSEOX) {
-            poly(dc, [[7, 0], [12, 7], [12, 10], [10, 13], [4, 13], [2, 10], [2, 7]], ox, oy, true);
-        } else if (id == Fields.RESP) {
-            poly(dc, [[0, 4], [4, 1], [8, 4], [12, 1]], ox, oy, false);
-            poly(dc, [[0, 10], [4, 7], [8, 10], [12, 7]], ox, oy, false);
-        } else if (id == Fields.HILOW) {
-            dc.drawRoundedRectangle(ox + 5, oy, 4, 10, 2);
-            dc.drawCircle(ox + 7, oy + 11, 3);
-        } else if (id == Fields.BIKE) {
-            dc.drawCircle(ox + 3, oy + 10, 3); dc.drawCircle(ox + 11, oy + 10, 3);
-            poly(dc, [[3, 10], [6, 3], [11, 10]], ox, oy, false);
-        } else if (id == Fields.RUN) {
-            dc.drawCircle(ox + 8, oy + 2, 2);
-            poly(dc, [[7, 5], [4, 9], [0, 10]], ox, oy, false);
-            poly(dc, [[7, 5], [10, 8], [13, 7]], ox, oy, false);
-            poly(dc, [[7, 5], [7, 9], [10, 13]], ox, oy, false);
-        } else if (id == Fields.ALTITUDE) {
-            poly(dc, [[0, 13], [5, 4], [8, 9], [10, 6], [14, 13]], ox, oy, true);
-        } else if (id == Fields.PRESSURE) {
-            dc.drawCircle(ox + 7, oy + 7, 6);
-            line(dc, ox, oy, 7, 7, 10, 3);
+    // Black Panther icons on a 16 px grid, centred at (cx, cy), scaled by k and turned rot degrees clockwise.
+    // col draws the icon; bg is the surface behind it, for cut lines and filled outlines.
+    function drawIcon(dc as Dc, id as Number, cx as Numeric, cy as Numeric, k as Float, rot as Float, col as Number, bg as Number) as Void {
+        var a = rot * Math.PI / 180;
+        icX = cx.toFloat(); icY = cy.toFloat(); icK = k; icS = Math.sin(a).toFloat(); icC = Math.cos(a).toFloat();
+        dc.setColor(col, Graphics.COLOR_TRANSPARENT);
+        dc.setPenWidth((2 * k + 0.5).toNumber());
+        if (id == Fields.HEART) {
+            // The heart-shaped herb, its veins cut out.
+            fp(dc, [[8, 15], [1, 8], [0, 4], [2, 1], [5, 1], [8, 4], [11, 1], [14, 1], [16, 4], [15, 8]]);
+            dc.setColor(bg, Graphics.COLOR_TRANSPARENT);
+            pl(dc, [[8, 5], [8, 12]], false); pl(dc, [[8, 8], [5, 6]], false); pl(dc, [[8, 10], [11, 8]], false);
+        } else if (id == Fields.RESTING) {
+            pl(dc, [[8, 15], [1, 8], [0, 4], [2, 1], [5, 1], [8, 4], [11, 1], [14, 1], [16, 4], [15, 8]], true);
+            pl(dc, [[8, 6], [8, 12]], false);
+        } else if (id == Fields.RECOVERY) {
+            // A herb sprout.
+            pl(dc, [[8, 16], [8, 7]], false);
+            pl(dc, [[8, 9], [4, 9], [1, 6], [2, 3], [5, 3], [8, 7]], true);
+            pl(dc, [[8, 7], [11, 2], [14, 2], [16, 5], [13, 8], [8, 8]], true);
+        } else if (id == Fields.BODY) {
+            // A solid vibranium cell with a lightning bolt cut out: stored energy.
+            fp(dc, [[8, 0], [14, 4], [14, 12], [8, 16], [2, 12], [2, 4]]);
+            dc.setColor(bg, Graphics.COLOR_TRANSPARENT);
+            fp(dc, [[10, 1], [4, 9], [8, 9], [6, 15], [12, 7], [8, 7]]);
+        } else if (id == Fields.STEPS) {
+            // A panther paw print: a wide pad and four toes, with clear gaps so it reads at bar size.
+            fp(dc, [[8, 9], [12, 11], [14, 14], [12, 16], [4, 16], [2, 14], [4, 11]]);
+            ci(dc, 1.5, 8, 1.8, true); ci(dc, 5.5, 3.5, 1.8, true); ci(dc, 10.5, 3.5, 1.8, true); ci(dc, 14.5, 8, 1.8, true);
+        } else if (id == Fields.MOVE) {
+            // The panther mask.
+            pl(dc, [[1, 0], [5, 4], [11, 4], [15, 0], [15, 8], [8, 16], [1, 8]], true);
+            fp(dc, [[3, 8], [7, 9], [6, 11]]); fp(dc, [[13, 8], [9, 9], [10, 11]]);
         } else if (id == Fields.STRESS) {
-            poly(dc, [[0, 7], [3, 7], [5, 2], [8, 12], [10, 7], [14, 7]], ox, oy, false);
+            // The fangs of the panther necklace.
+            pl(dc, [[0, 2], [4, 4], [8, 5], [12, 4], [16, 2]], false);
+            fp(dc, [[2, 3], [5, 4], [3, 11]]); fp(dc, [[6, 5], [10, 5], [8, 14]]); fp(dc, [[11, 4], [14, 3], [13, 11]]);
+        } else if (id == Fields.FLOORS) {
+            // Warrior Falls.
+            pl(dc, [[0, 16], [0, 11], [4, 11], [4, 6], [8, 6], [8, 1], [11, 1]], false);
+            pl(dc, [[11, 3], [11, 16]], false); pl(dc, [[14, 1], [14, 16]], false);
+        } else if (id == Fields.WEATHER) {
+            ci(dc, 6, 5, 3, false);
+            pl(dc, [[6, 0], [6, 1]], false); pl(dc, [[0, 5], [1, 5]], false); pl(dc, [[2, 1], [3, 2]], false); pl(dc, [[10, 1], [9, 2]], false);
+            plate(dc, [[2, 15], [0, 12], [3, 9], [7, 9], [9, 7], [13, 8], [16, 12], [15, 15]], col, bg);
+        } else if (id == Fields.BATTERY) {
+            // The body fills with the charge, dimmed by quarter like the bars (ADR 0014).
+            pl(dc, [[0, 4], [13, 4], [13, 12], [0, 12]], true);
+            pl(dc, [[15, 6], [15, 10]], false);
+            var b = battery, bx = 2.5 + 8 * (b > 1 ? 1 : b);
+            dc.setColor(b < 1 ? dim(col, QUARTERS[(b * 4).toNumber()] as Float) : col, Graphics.COLOR_TRANSPARENT);
+            if (b > 0.02) { fp(dc, [[2.5, 6.5], [bx, 6.5], [bx, 9.5], [2.5, 9.5]]); }
         } else if (id == Fields.CALORIES) {
-            poly(dc, [[7, 0], [12, 6], [12, 10], [9, 14], [4, 14], [1, 10], [2, 6], [5, 3], [5, 8]], ox, oy, false);
+            pl(dc, [[8, 0], [13, 7], [13, 11], [9, 16], [5, 16], [2, 11], [3, 7], [6, 9]], true);
+            fp(dc, [[6, 14], [8, 10], [10, 14]]);
         } else if (id == Fields.DISTANCE) {
-            poly(dc, [[1, 13], [5, 1], [9, 1], [13, 13]], ox, oy, false);
-            line(dc, ox, oy, 7, 3, 7, 5); line(dc, ox, oy, 7, 8, 7, 10);
-        } else {
-            dc.drawRectangle(ox, oy + 1, 14, 12);
-            line(dc, ox, oy, 0, 5, 14, 5); line(dc, ox, oy, 4, -1, 4, 3); line(dc, ox, oy, 10, -1, 10, 3);
+            // A vibranium spear.
+            pl(dc, [[2, 14], [12, 4]], false); fp(dc, [[16, 0], [9, 3], [13, 7]]);
+            pl(dc, [[3, 10], [6, 13]], false); pl(dc, [[0, 16], [2, 14]], false);
+        } else if (id == Fields.SUNRISE) {
+            ci(dc, 11, 6, 3, false);
+            plate(dc, [[0, 15], [5, 6], [8, 10], [10, 8], [16, 15]], col, bg);
+        } else if (id == Fields.ZONE) {
+            // A Kimoyo bead with the Wakandan triangle.
+            ci(dc, 8, 8, 7, false); pl(dc, [[8, 3], [13, 11], [3, 11]], true);
+        } else if (id == Fields.PULSEOX) {
+            pl(dc, [[8, 0], [14, 8], [14, 11], [11, 15], [5, 15], [2, 11], [2, 8]], true);
+            fp(dc, [[8, 7], [10, 10], [8, 13], [6, 10]]);
+        } else if (id == Fields.RESP) {
+            pl(dc, [[0, 4], [10, 4], [13, 1]], false); pl(dc, [[0, 9], [13, 9], [16, 12]], false); pl(dc, [[3, 14], [9, 14]], false);
+        } else if (id == Fields.HILOW) {
+            pl(dc, [[6, 9], [6, 3], [8, 0], [10, 3], [10, 9]], false); ci(dc, 8, 12, 3, true);
+        } else if (id == Fields.BIKE) {
+            ci(dc, 3, 11, 3, false); ci(dc, 13, 11, 3, false);
+            pl(dc, [[3, 11], [7, 4], [13, 11]], true); pl(dc, [[6, 4], [9, 4]], false);
+        } else if (id == Fields.RUN) {
+            fp(dc, [[8, 15], [7, 12], [9, 10], [13, 10], [15, 12], [14, 15]]);
+            ci(dc, 8, 7, 1.5, true); ci(dc, 11, 5, 1.5, true); ci(dc, 15, 7, 1.5, true);
+            pl(dc, [[0, 8], [4, 8]], false); pl(dc, [[1, 11], [5, 11]], false); pl(dc, [[0, 14], [4, 14]], false);
+        } else if (id == Fields.ALTITUDE) {
+            // Mount Bashenga.
+            pl(dc, [[0, 15], [6, 3], [9, 8], [11, 5], [16, 15]], true); fp(dc, [[6, 3], [4, 7], [8, 7]]);
+        } else if (id == Fields.PRESSURE) {
+            ci(dc, 8, 8, 7, false); pl(dc, [[8, 8], [12, 4]], false); ci(dc, 8, 8, 1.5, true);
+        } else if (id == Fields.AIR) {
+            // Airflow: three long, gentle swells, one per line, unlike Respiration's straight, flicked lines.
+            for (var wy = 3; wy <= 13; wy += 5) {
+                var wp = [] as Array;
+                for (var wx = 0; wx <= 16; wx += 2) { wp.add([wx, wy - 1.5 * Math.sin(wx * Math.PI / 8)]); }
+                pl(dc, wp, false);
+            }
         }
     }
 
-    function offset(pts as Array<Array<Number>>, ox as Numeric, oy as Numeric) as Array<[Numeric, Numeric]> {
-        var out = [] as Array<[Numeric, Numeric]>;
-        for (var i = 0; i < pts.size(); i++) { out.add([ox + pts[i][0], oy + pts[i][1]]); }
-        return out;
+    // Icon grid point to screen.
+    function ip(x as Numeric, y as Numeric) as [Numeric, Numeric] {
+        var dx = (x - 8) * icK, dy = (y - 8) * icK;
+        return [icX + dx * icC - dy * icS, icY + dx * icS + dy * icC];
     }
 
-    function line(dc as Dc, ox as Numeric, oy as Numeric, x1 as Number, y1 as Number, x2 as Number, y2 as Number) as Void {
-        dc.drawLine(ox + x1, oy + y1, ox + x2, oy + y2);
-    }
-
-    function poly(dc as Dc, pts as Array<Array<Number>>, ox as Numeric, oy as Numeric, closed as Boolean) as Void {
+    function pl(dc as Dc, pts as Array, closed as Boolean) as Void {
         var n = pts.size();
         for (var i = 0; i < (closed ? n : n - 1); i++) {
-            var q = pts[(i + 1) % n];
-            line(dc, ox, oy, pts[i][0], pts[i][1], q[0], q[1]);
+            var p = pts[i] as Array<Numeric>, q = pts[(i + 1) % n] as Array<Numeric>, a = ip(p[0], p[1]), b = ip(q[0], q[1]);
+            dc.drawLine(a[0], a[1], b[0], b[1]);
         }
+    }
+
+    function fp(dc as Dc, pts as Array) as Void {
+        var out = [] as Array<[Numeric, Numeric]>;
+        for (var i = 0; i < pts.size(); i++) { var p = pts[i] as Array<Numeric>; out.add(ip(p[0], p[1])); }
+        dc.fillPolygon(out);
+    }
+
+    function ci(dc as Dc, x as Numeric, y as Numeric, r as Numeric, filled as Boolean) as Void {
+        var c = ip(x, y);
+        if (filled) { dc.fillCircle(c[0], c[1], r * icK); } else { dc.drawCircle(c[0], c[1], r * icK); }
+    }
+
+    // A shape filled with the background, then outlined, so it covers what is behind it.
+    function plate(dc as Dc, pts as Array, col as Number, bg as Number) as Void {
+        dc.setColor(bg, Graphics.COLOR_TRANSPARENT);
+        fp(dc, pts);
+        dc.setColor(col, Graphics.COLOR_TRANSPARENT);
+        pl(dc, pts, true);
     }
 }

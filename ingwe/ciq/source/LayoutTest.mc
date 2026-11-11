@@ -5,7 +5,7 @@ import Toybox.System;
 import Toybox.Test;
 import Toybox.Time;
 
-// Fixed gauges stay inside the edge, apart from each other and, in Hybrid, left of the digits.
+// Fixed gauges stay inside the edge, apart from each other and, in Hybrid and Digital, left of the digits.
 function check(fields as Array<Number>, maxX as Float) as Void {
     Layout.setup(System.getDeviceSettings().screenWidth);
     var cs = Layout.fit(fields, maxX);
@@ -28,7 +28,7 @@ function check(fields as Array<Number>, maxX as Float) as Void {
 (:test)
 function fixedLayout(logger as Logger) as Boolean {
     check([7, 5, 4, 0], 9999.0);
-    check([7, -1, 4, 0], Layout.DIGITS_X);
+    check([7, -1, 4, 0], Layout.DIGITS_X);  // Hybrid and Digital
     var dup = Layout.fit([5, 5, 0, 7], 9999.0)[1] as Array?;
     Test.assertMessage(dup == null, "duplicate gauge shown");
     return true;
@@ -45,8 +45,12 @@ function recoveryPeak(logger as Logger) as Boolean {
     Test.assertEqual(Fields.recovered(0), 1.0);
     Test.assertEqual(Fields.recovered(10), 0.0);
     // A peak that ran out while another face was showing is replaced.
-    Application.Storage.setValue("recoveryPeak", [40, Time.now().value() - 41 * 3600]);
+    Application.Storage.setValue("recoveryPeak", [40, Time.now().value() - 2 * 3600]);
     Test.assertEqual(Fields.recovered(18), 0.0);
+    // A top-up with an hour left keeps the 18 h peak and pushes its zero out past the old one.
+    Application.Storage.setValue("recoveryPeak", [18, Time.now().value() + 3600]);
+    Test.assertEqual(Fields.recovered(10), 1 - 10 / 18.0);
+    Test.assertMessage((Application.Storage.getValue("recoveryPeak") as Array<Number>)[1] > Time.now().value() + 9 * 3600, "top-up did not push the zero");
     Application.Storage.deleteValue("recoveryPeak");
     return true;
 }

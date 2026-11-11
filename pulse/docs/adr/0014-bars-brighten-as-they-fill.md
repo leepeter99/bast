@@ -8,4 +8,5 @@ Body Battery and Stress never shine, because 100 and 0 come and go from minute t
 
 - A bar that is already full when the face loads, or when the settings change, does not shine. Neither does one that fills while the watch is in always-on mode: it shines from the next wake instead.
 - The shine is static, so it needs no once-a-second redraw. The Body Battery breathing holds one brightness in low-power mode until the next minute.
+- The battery icon follows the same rule: its body fills with the charge in the accent dimmed by quarter, full accent only at 100%.
 - The dimmest quarter is 50%, not lower, so the deep violet accent stays clear of the track colour.

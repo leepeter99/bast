@@ -231,7 +231,8 @@ module Fields {
             var v = complication(Complications.COMPLICATION_TYPE_SEA_LEVEL_PRESSURE);
             return v == null ? none : [Math.round(v > 2000 ? v / 100.0 : v).toNumber().toString(), null, "hPa"];
         } else if (id == AIR) {
-            // [aqi, null, category name, category 0-5]. The categories are US AQI, so the app should be set to US.
+            // [aqi, null, category name, category 0-5].
+            // ponytail: categories are US AQI only, so the app should be set to US; map other indexes here if users ask.
             var c = air(), v = c == null ? null : c.value;
             if (!(v instanceof Number || v instanceof Float || v instanceof Long || v instanceof Double)) { return none; }
             var n = (v as Numeric).toNumber(), k = 0;
