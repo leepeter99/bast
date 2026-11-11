@@ -4,5 +4,5 @@ Ingwe keeps four fields at fixed homes (top, right, bottom, left) and lets the h
 
 ## Consequences
 
-- Pulse ADRs 0001, 0003, 0004, 0005 (corner bars, and the Hybrid digits Pulse later dropped), 0007, 0008, 0010, 0011, 0013, 0014 and 0015 apply to Ingwe as written. Pulse ADRs 0002, 0006, 0009 and 0012 (slots and relocation) don't.
+- Pulse ADRs 0001, 0003, 0004, 0005 (corner bars, and the Hybrid digits Pulse later dropped), 0007, 0008, 0010, 0011, 0013, 0014 and 0015 apply to Ingwe as written, except where Ingwe ADR 0003 resizes the gauges and bar labels. Pulse ADRs 0002, 0006, 0009 and 0012 (slots and relocation) don't.
 - Stored `field0`–`field3`, `timeStyle` and `bar0`–`bar3` keep their meaning across the upgrade.

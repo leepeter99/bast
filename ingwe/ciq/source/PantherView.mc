@@ -305,7 +305,7 @@ class PantherView extends WatchUi.WatchFace {
                     textCol = tint(ALERT);
                     num = !walking && lit == 0 ? Fields.str(Rez.Strings.Drained)
                         : Fields.str(walking ? Rez.Strings.KeepGoing : Rez.Strings.MoveAlert) + " " + moveLevel + "/5";
-                    // Walking it off: absorbed energy runs along the empty segments, one per second in high-power mode.
+                    // Walking it off: absorbed energy runs along the empty segments, one per second in active mode.
                     // Drained: the cells show the bare track and the first one breathes in the accent.
                     if (walking) { pulse = lit + sec % (n - lit); }
                     else if (lit == 0) { pulse = 0; pulseCol = mix(tint(TRACK), accent(), BREATH[sec % 4] as Float); }
@@ -330,8 +330,8 @@ class PantherView extends WatchUi.WatchFace {
             // arc so it stands upright beside the text, which reads clockwise on top and counter-clockwise below.
             // ponytail: text width estimated at 0.5 em per glyph; measure it if labels look off-centre.
             var mid = (SPANS[k][0] + SPANS[k][1]) / 2.0, dir = TOP[k] ? 1 : -1, deg = 180 / Math.PI / LABEL_R;
-            // As large as fits the bar's middle 48 degrees (clear of the gauges), at most 32 px: icon + gap + text.
-            var fs = 155.0 / (1 + num.length() * 0.5), sz = (fs < 32 ? fs : 32).toNumber() / 2 * 2, f = font((sz * S).toNumber());
+            // As large as stays clear of the gauges, at most 32 px (ingwe ADR 0003): icon + gap + text in a 135 px budget.
+            var fs = 135.0 / (1 + num.length() * 0.5), sz = (fs < 32 ? fs : 32).toNumber() / 2 * 2, f = font((sz * S).toNumber());
             var iw = sz * S, tw = num.length() * sz * 0.5 * S, gap = num.length() > 0 ? 6 * S : 0, w = iw + gap + tw;
             var ia = mid + dir * (iw - w) / 2 * deg, ta = mid + dir * (iw + gap + tw / 2 - w / 2) * deg, a = ia * Math.PI / 180;
             // Icons always take the accent; only the words carry an alert colour.
