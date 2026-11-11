@@ -1,0 +1,51 @@
+Bast Ingwe is a watch face for AMOLED Garmin watches with four large data gauges that always stay in the same place, four corner bars along the edge for your daily progress, and your choice of analog, hybrid or digital time.
+
+TIME STYLES
+• Analog: hour, minute and seconds hands.
+• Hybrid: the hands plus large stacked hours, minutes and seconds on the right.
+• Digital: the large stacked digits without hands.
+In Hybrid and Digital, the digits take the right side of the dial: the right gauge and the two right corner bars make way, and a battery icon sits above the digits.
+
+GAUGES
+Four large circular gauges sit at the top, right, bottom and left of the dial. They never move, so you always know where to look; the hands simply pass over them. Fields with a natural range, such as watch battery, show a progress ring, and the battery icon fills with your charge.
+
+Pick any four of:
+• Heart rate
+• Resting heart rate
+• Recovery time
+• Weather
+• Watch battery
+• Date with weekday
+• Calories
+• Distance (km or mi, from your device settings)
+• Sunrise / Sunset (shows whichever is next)
+• Stress
+• Pulse Ox
+• Respiration
+• High / low temperature
+• Weekly bike distance
+• Weekly run distance
+• Altitude
+• Barometric pressure
+• Air quality, from the Atmos Air Quality app (install it separately and set it to the US scale). Shows the US AQI category, Good to Hazardous, in its colour; press and hold to open the app.
+• Second time zone: London, New York, Tokyo, Sydney, Singapore, Kuala Lumpur, Kolkata, Dubai, Bangkok, Taipei or UTC, with daylight saving applied. You can also set a custom UTC offset with an optional 3-letter label.
+
+CORNER BARS
+Four bars run along the dial edge. Each one shows Steps, Body Battery, Move alert, Recovery, Stress or Floors climbed, or can be turned off. The fill always tracks the real value.
+• Bars brighten as they fill. Steps, Floors climbed and Recovery shine briefly when they reach their goal.
+• Each bar shows a Black Panther icon and its number, such as a paw print and your full step count.
+• Move alert reads as vibranium charge: full and purple, labelled CHARGED, when you've moved recently. It dims a segment for each step of idleness and recharges when you walk it off.
+• Body Battery shows REST below 10%, and its bar breathes when nearly empty.
+• Recovery fills as your recovery time runs down, and shows RECHARGED at zero. It is also available as a gauge.
+• Stress fills as stress rises and turns orange when stress is high. It is also available as a gauge.
+
+CUSTOMIZE
+Accent colour: Vibranium purple, Deep violet, Soft lavender, Amber, Ice Blue or Lume Green. Change the time style, gauges, bars and accent from the phone app or on the watch.
+
+ALWAYS-ON
+In low-power mode, every time style shows only outlined hour and minute hands, shifted slightly each minute to protect the AMOLED display.
+
+COMPATIBLE WATCHES
+Forerunner 965 and 970, fēnix 8 AMOLED (43mm, 47mm, Pro 47mm) and fēnix 9 AMOLED (43mm, 47mm, Pro 43mm, 47mm, 51mm). The layout scales automatically to each screen size. Solar (MIP display) models are not supported.
+
+If a reading isn't available, it shows "--".

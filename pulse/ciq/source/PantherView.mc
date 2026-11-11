@@ -114,7 +114,8 @@ class PantherView extends WatchUi.WatchFace {
             for (var i = 0; i < 4; i++) {
                 barValues[i] = bars[i] == 0 ? null : read(Fields.BAR_IDS[bars[i]] as Number);
             }
-            battery = System.getSystemStats().battery / 100;
+            var bp = read(Fields.BATTERY)[1] as Float?;
+            battery = bp != null ? bp : 0.0;
             cachedMin = m;
         }
         dc.drawBitmap(0, 0, edge());
