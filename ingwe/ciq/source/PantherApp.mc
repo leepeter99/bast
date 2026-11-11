@@ -25,7 +25,7 @@ class PantherApp extends Application.AppBase {
 }
 
 // Hold to launch: pressing and holding the Air quality gauge opens the Atmos app that publishes it.
-// Only some watches send the press; elsewhere nothing happens.
+// ponytail: only some watches send the press; elsewhere nothing happens. A tap fallback would need its own gesture.
 class PantherDelegate extends WatchUi.WatchFaceDelegate {
     var view as PantherView;
 

@@ -43,7 +43,7 @@ class PantherView extends WatchUi.WatchFace {
     var barValues as Array = [null, null, null, null];
     var accentIdx as Number = 0;
     // 0 Analog, 1 Hybrid (digits under the hands), 2 Digital (the same digits, no hands).
-    var style as Number = 0;
+    var style as Number = ANALOG;
     var circles as Array = [];
     var values as Array = [null, null, null, null];
     var cachedMin as Number = -1;
@@ -59,6 +59,8 @@ class PantherView extends WatchUi.WatchFace {
     var wasFull as Array<Boolean?> = [null, null, null, null];
     var shineUntil as Array<Number> = [0, 0, 0, 0];
     // Icon transform (centre, scale, rotation), set by drawIcon for its helpers.
+    // Charge 0..1, read with the other readings once a minute, for the battery icon.
+    var battery as Float = 0.0;
     var icX as Float = 0.0;
     var icY as Float = 0.0;
     var icK as Float = 1.0;
@@ -78,9 +80,9 @@ class PantherView extends WatchUi.WatchFace {
         bars = Fields.bars();
         style = timeStyle();
         // Hybrid and Digital: the digits take the right side, so the right gauge and both right bars go.
-        if (style > 0) { fields[1] = -1; bars[1] = 0; bars[3] = 0; }
+        if (style != ANALOG) { fields[1] = -1; bars[1] = 0; bars[3] = 0; }
         accentIdx = Fields.index(Application.Properties.getValue("accent"), ACCENTS.size(), 0);
-        circles = Layout.fit(fields, style > 0 ? Layout.DIGITS_X : 9999.0);
+        circles = Layout.fit(fields, style != ANALOG ? Layout.DIGITS_X : 9999.0);
         wasFull = [null, null, null, null];
         shineUntil = [0, 0, 0, 0];
         cachedMin = -1;
@@ -109,6 +111,7 @@ class PantherView extends WatchUi.WatchFace {
                 values[i] = fields[i] < 0 ? null : Fields.read(fields[i]);
                 barValues[i] = bars[i] == 0 ? null : Fields.read(Fields.BAR_IDS[bars[i]] as Number);
             }
+            battery = System.getSystemStats().battery / 100;
             cachedMin = m;
         }
         dc.drawBitmap(0, 0, edge());
@@ -118,13 +121,13 @@ class PantherView extends WatchUi.WatchFace {
             if (fields[i] == Fields.HEART) { values[i] = Fields.read(Fields.HEART); }
             drawGauge(dc, fields[i], circles[i] as Array<Float>, values[i] as Array);
         }
-        if (style > 0) { drawDigits(dc, ct); }
-        if (style == 2) { return; }
+        if (style != ANALOG) { drawDigits(dc, ct); }
+        if (style == DIGITAL) { return; }
         var hs = Layout.hands(m);
         drawHand(dc, HOUR, hs[0][0], CX, CX, true);
         drawHand(dc, MINUTE, hs[1][0], CX, CX, true);
         drawSeconds(dc, ct[2] * 6.0);
-        dc.setColor(tint(0xe5caff), Graphics.COLOR_TRANSPARENT);
+        dc.setColor(tint(GLOW), Graphics.COLOR_TRANSPARENT);
         dc.fillCircle(CX, CX, 10 * S);
         dc.setColor(0x283334, Graphics.COLOR_TRANSPARENT);
         dc.setPenWidth((4 * S + 0.5).toNumber());
@@ -173,9 +176,7 @@ class PantherView extends WatchUi.WatchFace {
         return null;
     }
 
-    function dim(c as Number, f as Float) as Number {
-        return (((c >> 16) & 0xff) * f).toNumber() << 16 | (((c >> 8) & 0xff) * f).toNumber() << 8 | ((c & 0xff) * f).toNumber();
-    }
+    function dim(c as Number, f as Float) as Number { return mix(c, 0, 1 - f); }
 
 
     // Ticks and bar tracks only change with settings, so they are drawn once. The graphics pool may purge it.
@@ -241,7 +242,8 @@ class PantherView extends WatchUi.WatchFace {
         dc.drawArc(CX, CX, BAR_R, Graphics.ARC_CLOCKWISE, (450 - a - idx * w - 1) % 360, (450 - a - (idx + 1) * w + 1) % 360);
     }
 
-    // Smooth fill of bar k to fraction f, from its fill end, pen w px before scaling. drawArc truncates to whole degrees.
+    // Smooth fill of bar k to fraction f, from its fill end, pen w px before scaling.
+    // ponytail: drawArc truncates to whole degrees, so a fill steps by 1 degree; draw sub-degree ends as lines if steps show.
     function drawFill(dc as Dc, k as Number, f as Float, col as Number, w as Number) as Void {
         var a0 = SPANS[k][0] + 1, a1 = SPANS[k][1] - 1, len = ((f > 1 ? 1 : f) * (a1 - a0)).toNumber();
         if (len < 1) { return; }
@@ -297,7 +299,7 @@ class PantherView extends WatchUi.WatchFace {
                     lit = n;
                     col = fresh ? tint(GLOW) : accent();
                     // White CHARGED like the other bars' labels; during an alert the words take a dimmed hand lilac.
-                    num = Fields.str(Rez.Strings.Active);
+                    num = Fields.str(Rez.Strings.Charged);
                 } else {
                     var lv = moveLevel < n ? moveLevel : n;
                     lit = n - lv;
@@ -401,7 +403,7 @@ class PantherView extends WatchUi.WatchFace {
             pts.add([cx + px * c - py * s, cy + px * s + py * c]);
         }
         if (filled) {
-            dc.setColor(tint(0xe5caff), Graphics.COLOR_TRANSPARENT);
+            dc.setColor(tint(GLOW), Graphics.COLOR_TRANSPARENT);
             dc.fillPolygon(pts);
             dc.setColor(tint(0x553166), Graphics.COLOR_TRANSPARENT);
             dc.setPenWidth((3 * S + 0.5).toNumber());
@@ -494,7 +496,7 @@ class PantherView extends WatchUi.WatchFace {
             // The body fills with the charge, dimmed by quarter like the bars (ADR 0014).
             pl(dc, [[0, 4], [13, 4], [13, 12], [0, 12]], true);
             pl(dc, [[15, 6], [15, 10]], false);
-            var b = System.getSystemStats().battery / 100, bx = 2.5 + 8 * (b > 1 ? 1 : b);
+            var b = battery, bx = 2.5 + 8 * (b > 1 ? 1 : b);
             dc.setColor(b < 1 ? dim(col, QUARTERS[(b * 4).toNumber()] as Float) : col, Graphics.COLOR_TRANSPARENT);
             if (b > 0.02) { fp(dc, [[2.5, 6.5], [bx, 6.5], [bx, 9.5], [2.5, 9.5]]); }
         } else if (id == Fields.CALORIES) {

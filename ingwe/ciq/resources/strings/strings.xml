@@ -68,7 +68,7 @@
     <string id="B5">Stress</string>
     <string id="B6">Floors climbed</string>
     <string id="Recharged">RECHARGED</string>
-    <string id="Active">CHARGED</string>
+    <string id="Charged">CHARGED</string>
     <string id="MoveAlert">MOVE!</string>
     <string id="KeepGoing">KEEP GOING</string>
     <string id="Drained">DRAINED</string>

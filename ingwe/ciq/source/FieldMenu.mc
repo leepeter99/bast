@@ -18,7 +18,9 @@ function accentName(a as Number) as String { return res([Rez.Strings.A0, Rez.Str
 
 function styleName(t as Number) as String { return res([Rez.Strings.T0, Rez.Strings.T1, Rez.Strings.T2][t] as ResourceId); }
 
-// 0 Analog, 1 Hybrid, 2 Digital (Hybrid's digits without hands).
+// Time styles, as stored in "timeStyle". Digital is Hybrid's digits without hands.
+enum { ANALOG, HYBRID, DIGITAL }
+
 function timeStyle() as Number { return Fields.index(Application.Properties.getValue("timeStyle"), 3, 0); }
 
 class FieldMenu extends WatchUi.Menu2 {
