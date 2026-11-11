@@ -527,8 +527,12 @@ class PantherView extends WatchUi.WatchFace {
             pl(dc, [[6, 0], [6, 1]], false); pl(dc, [[0, 5], [1, 5]], false); pl(dc, [[2, 1], [3, 2]], false); pl(dc, [[10, 1], [9, 2]], false);
             plate(dc, [[2, 15], [0, 12], [3, 9], [7, 9], [9, 7], [13, 8], [16, 12], [15, 15]], col, bg);
         } else if (id == Fields.BATTERY) {
+            // The body fills with the charge, dimmed by quarter like the bars (ADR 0014).
             pl(dc, [[0, 4], [13, 4], [13, 12], [0, 12]], true);
-            pl(dc, [[15, 6], [15, 10]], false); fp(dc, [[3, 10], [7, 6], [10, 10]]);
+            pl(dc, [[15, 6], [15, 10]], false);
+            var b = System.getSystemStats().battery / 100, bx = 2.5 + 8 * (b > 1 ? 1 : b);
+            dc.setColor(b < 1 ? dim(col, QUARTERS[(b * 4).toNumber()] as Float) : col, Graphics.COLOR_TRANSPARENT);
+            if (b > 0.02) { fp(dc, [[2.5, 6.5], [bx, 6.5], [bx, 9.5], [2.5, 9.5]]); }
         } else if (id == Fields.CALORIES) {
             pl(dc, [[8, 0], [13, 7], [13, 11], [9, 16], [5, 16], [2, 11], [3, 7], [6, 9]], true);
             fp(dc, [[6, 14], [8, 10], [10, 14]]);
