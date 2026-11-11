@@ -7,17 +7,17 @@ module Layout {
     // Design values at 454 px, rescaled by setup() to the real screen width.
     var S as Float = 1.0;
     var CX as Float = 227.0;
-    var EDGE as Float = 186.0;     // just inside the corner-bar labels (ADR 0005)
+    var EDGE as Float = 198.0;     // just inside the cardinal ticks; the corner-bar labels sit off the axes
     var HOUR_LEN as Float = 117.0;
     var MIN_LEN as Float = 170.0;
-    var R as Float = 74.0;         // largest whole r with neighbours 90 degrees apart: (EDGE - r) * sqrt 2 >= 2r + GAP
+    var R as Float = 79.0;          // largest whole r with neighbours 90 degrees apart: (EDGE - r) * sqrt 2 >= 2r + GAP
     var GAP as Float = 7.0;
     var DIGITS_X as Float = 298.0; // Hybrid digits start at x ~305
 
     function setup(width as Number) as Void {
         S = width / 454.0;
-        CX = 227.0 * S; EDGE = 186.0 * S; HOUR_LEN = 117.0 * S; MIN_LEN = 170.0 * S;
-        R = 74.0 * S; GAP = 7.0 * S; DIGITS_X = 298.0 * S;
+        CX = 227.0 * S; EDGE = 198.0 * S; HOUR_LEN = 117.0 * S; MIN_LEN = 170.0 * S;
+        R = 79.0 * S; GAP = 7.0 * S; DIGITS_X = 298.0 * S;
     }
 
     // [[deg, len], [deg, len]] for hour and minute hands; m = minute of the 12-hour dial.

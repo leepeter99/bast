@@ -22,7 +22,7 @@ class PantherView extends WatchUi.WatchFace {
     const FROM_START = [true, false, false, true];
     const TOP = [true, true, false, false];
     var BAR_R as Float = 214.0;
-    var LABEL_R as Float = 193.0;
+    var LABEL_R as Float = 190.0;
     const TRACK = 0x24152f;
     const BREATH = [0.3, 0.55, 0.8, 0.55];  // drained Move: the first cell's brightness, one step per second
     // GLOW is the hands' lilac (a fresh recharge, absorbed energy); ALERT that lilac dimmed for the alert words.
@@ -69,7 +69,7 @@ class PantherView extends WatchUi.WatchFace {
         WatchFace.initialize();
         var w = System.getDeviceSettings().screenWidth;
         Layout.setup(w);
-        S = Layout.S; CX = Layout.CX; BAR_R = 214.0 * S; LABEL_R = 193.0 * S;
+        S = Layout.S; CX = Layout.CX; BAR_R = 214.0 * S; LABEL_R = 190.0 * S;
         loadSettings();
     }
 
@@ -77,8 +77,8 @@ class PantherView extends WatchUi.WatchFace {
         for (var i = 0; i < 4; i++) { fields[i] = Fields.field(i); }
         bars = Fields.bars();
         style = timeStyle();
-        // Hybrid and Digital: the digits take the right side, so the right gauge goes.
-        if (style > 0) { fields[1] = -1; }
+        // Hybrid and Digital: the digits take the right side, so the right gauge and both right bars go.
+        if (style > 0) { fields[1] = -1; bars[1] = 0; bars[3] = 0; }
         accentIdx = Fields.index(Application.Properties.getValue("accent"), ACCENTS.size(), 0);
         circles = Layout.fit(fields, style > 0 ? Layout.DIGITS_X : 9999.0);
         wasFull = [null, null, null, null];
@@ -268,7 +268,6 @@ class PantherView extends WatchUi.WatchFace {
 
     // The fill (lit cells for Move) and the label inside each bar. Every bar reads full = good, so Move drains.
     function drawBars(dc as Dc, sec as Number) as Void {
-        var f = font((24 * S).toNumber());
         for (var k = 0; k < 4; k++) {
             var d = barValues[k] as Array?;
             if (bars[k] == 0 || d == null) { continue; }
@@ -331,10 +330,14 @@ class PantherView extends WatchUi.WatchFace {
             // arc so it stands upright beside the text, which reads clockwise on top and counter-clockwise below.
             // ponytail: text width estimated at 0.5 em per glyph; measure it if labels look off-centre.
             var mid = (SPANS[k][0] + SPANS[k][1]) / 2.0, dir = TOP[k] ? 1 : -1, deg = 180 / Math.PI / LABEL_R;
-            var iw = 24 * S, tw = num.length() * 12 * S, gap = num.length() > 0 ? 6 * S : 0, w = iw + gap + tw;
+            // As large as fits the bar's middle 48 degrees (clear of the gauges), at most 32 px: icon + gap + text.
+            var fs = 155.0 / (1 + num.length() * 0.5), sz = (fs < 32 ? fs : 32).toNumber() / 2 * 2, f = font((sz * S).toNumber());
+            var iw = sz * S, tw = num.length() * sz * 0.5 * S, gap = num.length() > 0 ? 6 * S : 0, w = iw + gap + tw;
             var ia = mid + dir * (iw - w) / 2 * deg, ta = mid + dir * (iw + gap + tw / 2 - w / 2) * deg, a = ia * Math.PI / 180;
             // Icons always take the accent; only the words carry an alert colour.
-            drawIcon(dc, id, CX + Math.sin(a) * LABEL_R, CX - Math.cos(a) * LABEL_R, 1.4 * S, TOP[k] ? ia : ia + 180, accent(), Graphics.COLOR_BLACK);
+            // The icon's outer edge stays 3 px inside the bar (inner edge BAR_R - 8).
+            var ik = sz / 16.5 * S, ir = BAR_R - 11 * S - 8 * ik;
+            drawIcon(dc, id, CX + Math.sin(a) * ir, CX - Math.cos(a) * ir, ik, TOP[k] ? ia : ia + 180, accent(), Graphics.COLOR_BLACK);
             if (f == null || num.length() == 0) { continue; }
             dc.setColor(textCol, Graphics.COLOR_TRANSPARENT);
             dc.drawRadialText(CX, CX, f, num, Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER,
@@ -378,8 +381,8 @@ class PantherView extends WatchUi.WatchFace {
         }
         // Icon, value, then the optional second line, stacked like the Chronos subdials.
         var sub = d[2] != null;
-        drawIcon(dc, id, x, y - r * (sub ? 0.62 : 0.55) + 3 * S, S, 0.0, accent(), tint(0x1a1224));
-        var size = r * (sub ? 0.56 : 0.64) / S, fitSize = r * 1.5 / S / (value.length() * 0.62);
+        drawIcon(dc, id, x, y - r * (sub ? 0.6 : 0.52) + 3 * S, r / 38, 0.0, accent(), tint(0x1a1224));
+        var size = r * (sub ? 0.6 : 0.72) / S, fitSize = r * 1.5 / S / (value.length() * 0.62);
         dc.setColor(0xf5f6f7, Graphics.COLOR_TRANSPARENT);
         // Even sizes only, to bound the font cache.
         text(dc, x, y + (sub ? -r * 0.04 : 2 * S), (size < fitSize ? size : fitSize).toNumber() / 2 * 2, value);
@@ -424,7 +427,9 @@ class PantherView extends WatchUi.WatchFace {
     }
 
     // Hybrid and Digital: stacked hours, minutes and seconds right of centre.
+    // Above them, the battery icon, its body filled to the charge.
     function drawDigits(dc as Dc, ct as Array<Number>) as Void {
+        drawIcon(dc, Fields.BATTERY, 345 * S, 112 * S, 3.0 * S, 0.0, accent(), Graphics.COLOR_BLACK);
         dc.setColor(0xf5f6f7, Graphics.COLOR_TRANSPARENT);
         text(dc, 345 * S, 178 * S, 92, Fields.hour(ct[0]));
         text(dc, 345 * S, 262 * S, 92, ct[1].format("%02d"));
@@ -486,8 +491,12 @@ class PantherView extends WatchUi.WatchFace {
             pl(dc, [[6, 0], [6, 1]], false); pl(dc, [[0, 5], [1, 5]], false); pl(dc, [[2, 1], [3, 2]], false); pl(dc, [[10, 1], [9, 2]], false);
             plate(dc, [[2, 15], [0, 12], [3, 9], [7, 9], [9, 7], [13, 8], [16, 12], [15, 15]], col, bg);
         } else if (id == Fields.BATTERY) {
+            // The body fills with the charge, dimmed by quarter like the bars (ADR 0014).
             pl(dc, [[0, 4], [13, 4], [13, 12], [0, 12]], true);
-            pl(dc, [[15, 6], [15, 10]], false); fp(dc, [[3, 10], [7, 6], [10, 10]]);
+            pl(dc, [[15, 6], [15, 10]], false);
+            var b = System.getSystemStats().battery / 100, bx = 2.5 + 8 * (b > 1 ? 1 : b);
+            dc.setColor(b < 1 ? dim(col, QUARTERS[(b * 4).toNumber()] as Float) : col, Graphics.COLOR_TRANSPARENT);
+            if (b > 0.02) { fp(dc, [[2.5, 6.5], [bx, 6.5], [bx, 9.5], [2.5, 9.5]]); }
         } else if (id == Fields.CALORIES) {
             pl(dc, [[8, 0], [13, 7], [13, 11], [9, 16], [5, 16], [2, 11], [3, 7], [6, 9]], true);
             fp(dc, [[6, 14], [8, 10], [10, 14]]);
