@@ -76,9 +76,9 @@ class PantherView extends WatchUi.WatchFace {
     }
 
     function loadSettings() as Void {
-        for (var i = 0; i < 4; i++) { fields[i] = Fields.field(i); }
-        bars = Fields.bars();
-        style = timeStyle();
+        for (var i = 0; i < 4; i++) { fields[i] = gauge(i); }
+        bars = cornerBars();
+        style = styleSetting();
         // Hybrid and Digital: the digits take the right side, so the right gauge and both right bars go.
         if (style != ANALOG) { fields[1] = -1; bars[1] = 0; bars[3] = 0; }
         accentIdx = Fields.index(Application.Properties.getValue("accent"), ACCENTS.size(), 0);
@@ -89,17 +89,52 @@ class PantherView extends WatchUi.WatchFace {
         edgeRef = null;
     }
 
+    // Store demo mode (demo.jungle): a pinned time and flattering readings, alternating Analog and Digital
+    // every 20 s for the store screenshots. Store builds exclude it (monkey.jungle).
+    (:nodemo) function clock() as Array<Number> { var c = System.getClockTime(); return [c.hour, c.min, c.sec] as Array<Number>; }
+    (:nodemo) function read(id as Number) as Array { return Fields.read(id); }
+    (:nodemo) function demoMove() as Void {}
+    (:nodemo) function gauge(i as Number) as Number { return Fields.field(i); }
+    (:nodemo) function cornerBars() as Array<Number> { return Fields.bars(); }
+    (:nodemo) function styleSetting() as Number { return timeStyle(); }
+
+    (:demo) function clock() as Array<Number> { return [10, 8, 36] as Array<Number>; }
+    (:demo) function read(id as Number) as Array {
+        if (id == Fields.HEART) { return ["62", null, null]; }
+        if (id == Fields.BODY) { return ["86", 0.86, null]; }
+        if (id == Fields.STEPS) { return ["8.4k", 0.84, null, 8432]; }
+        if (id == Fields.RECOVERY) { return ["5h", 0.7, null]; }
+        if (id == Fields.BATTERY) { return ["78%", 0.78, null]; }
+        if (id == Fields.WEATHER) { return ["24°", null, "18°|27°"]; }
+        return Fields.read(id);
+    }
+    (:demo) const SCENES = [ANALOG, DIGITAL];
+    (:demo) var demoStart as Number = -1;
+    (:demo) var shown as Number = 0;
+    (:demo) function scene() as Number { return demoStart < 0 ? 0 : (System.getTimer() - demoStart) / 20000 % SCENES.size(); }
+    (:demo) function demoMove() as Void {
+        moveLevel = 0; resetUntil = 0; walking = false;
+        if (demoStart < 0) { demoStart = System.getTimer(); }
+        var s = scene();
+        if (s != shown) { shown = s; loadSettings(); }
+        accentIdx = 0;
+    }
+    (:demo) function gauge(i as Number) as Number { return Fields.DEFAULTS[i] as Number; }
+    (:demo) function cornerBars() as Array<Number> { return Fields.BAR_DEFAULTS as Array<Number>; }
+    (:demo) function styleSetting() as Number { return SCENES[scene()] as Number; }
+
     function onEnterSleep() as Void { sleeping = true; WatchUi.requestUpdate(); }
 
     function onExitSleep() as Void { sleeping = false; cachedMin = -1; WatchUi.requestUpdate(); }
 
     function onUpdate(dc as Dc) as Void {
-        var c = System.getClockTime(), ct = [c.hour, c.min, c.sec] as Array<Number>, m = (ct[0] % 12) * 60 + ct[1];
+        var ct = clock(), m = (ct[0] % 12) * 60 + ct[1];
         // ADR 0003: no anti-aliasing in always-on mode, so edge pixels don't bleed across shifts.
         dc.setAntiAlias(!sleeping);
         var em = Time.now().value() / 60;
         trackMove(em != moveMin, em - moveMin == 1);
         moveMin = em;
+        demoMove();
         if (sleeping) {
             dc.setColor(Graphics.COLOR_BLACK, Graphics.COLOR_BLACK);
             dc.clear();
@@ -108,17 +143,18 @@ class PantherView extends WatchUi.WatchFace {
         }
         if (m != cachedMin) {
             for (var i = 0; i < 4; i++) {
-                values[i] = fields[i] < 0 ? null : Fields.read(fields[i]);
-                barValues[i] = bars[i] == 0 ? null : Fields.read(Fields.BAR_IDS[bars[i]] as Number);
+                values[i] = fields[i] < 0 ? null : read(fields[i]);
+                barValues[i] = bars[i] == 0 ? null : read(Fields.BAR_IDS[bars[i]] as Number);
             }
-            battery = System.getSystemStats().battery / 100;
+            var bp = read(Fields.BATTERY)[1] as Float?;
+            battery = bp != null ? bp : 0.0;
             cachedMin = m;
         }
         dc.drawBitmap(0, 0, edge());
         drawBars(dc, ct[2]);
         for (var i = 0; i < 4; i++) {
             if (circles[i] == null) { continue; }
-            if (fields[i] == Fields.HEART) { values[i] = Fields.read(Fields.HEART); }
+            if (fields[i] == Fields.HEART) { values[i] = read(Fields.HEART); }
             drawGauge(dc, fields[i], circles[i] as Array<Float>, values[i] as Array);
         }
         if (style != ANALOG) { drawDigits(dc, ct); }
