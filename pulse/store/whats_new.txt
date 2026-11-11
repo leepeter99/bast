@@ -1,7 +1,1 @@
-• New Air quality gauge: shows the AQI from the Atmos Air Quality app with its US AQI category, Good to Hazardous, in the category colour. Press and hold it to open Atmos, on watches that support it.
-• Corner bars fill smoothly and brighten as they fill. Steps, Floors climbed and Recovery shine briefly when they reach their goal.
-• Move alert shows how idle you are (MOVE! 3/5), KEEP GOING while you walk it off, and DRAINED at the last step.
-• Body Battery shows REST below 10%, and its bar breathes when nearly empty.
-• The accent colour can now be changed on the watch.
-• The Date gauge no longer shrinks too small to read.
-• The Stress bar now fills as stress rises, from 0 to 100.
+• The battery icon now fills with your charge, dimming as it drains like the corner bars.
